@@ -4,7 +4,6 @@
         Analyse CSPS theme scores by organisation. Analyses four things:
             - Organisation-level EEI and theme scores for 2024
             - Organisation-level EEI and theme scores for departments for 2024
-            - CS mean EEI and theme scores over time
             - CS median EEI and theme scores over time
     Inputs
         - XLSX: "Organisation working file.xlsx"
@@ -362,19 +361,6 @@ create_eei_theme_pairplot(df_csps_organisation_eei_ts_2024_depts_pivot, EEI_LABE
 
 fit_eei_theme_regressions(
     df_csps_organisation_eei_ts_2024_depts_pivot, EEI_LABEL, TS_LABELS, "2024 organisation-level data, depts only"
-)
-
-# %%
-# CS mean EEI and theme scores over time
-df_csps_organisation_eei_ts_mean_pivot = filter_pivot_data(
-    df_csps_organisation_eei_ts,
-    organisation_filter=MEAN_ORGANISATION_NAME,
-)
-
-create_eei_theme_pairplot(df_csps_organisation_eei_ts_mean_pivot, EEI_LABEL, TS_LABELS)
-
-fit_eei_theme_regressions(
-    df_csps_organisation_eei_ts_mean_pivot, EEI_LABEL, TS_LABELS, "2024 mean data"
 )
 
 # %%
