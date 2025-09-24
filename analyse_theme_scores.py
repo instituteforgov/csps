@@ -182,47 +182,56 @@ def filter_pivot_data(
 
     Returns:
         DataFrame with pivoted data (Organisation/Year as index, Labels as columns)
+
+    Raises:
+        TypeError: If df is not a pandas DataFrame
+        ValueError: DataFrame is empty or no data remains after filtering
     """
+    # Input validation
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError("df must be a pandas DataFrame")
+
+    if df.empty:
+        raise ValueError("DataFrame is empty")
+
+    # Coerce filter arguments to lists
+    if isinstance(year_filter, (int, float)):
+        year_filter = [year_filter]
+
+    if isinstance(organisation_type_filter, str):
+        organisation_type_filter = [organisation_type_filter]
+
+    if isinstance(organisation_filter, str):
+        organisation_filter = [organisation_filter]
+
+    # Create filtered copy
     df_filtered = df.copy()
 
-    # Apply year filter
+    # Apply filters
     if year_filter is not None:
-        if isinstance(year_filter, (int, float)):
-            df_filtered = df_filtered[df_filtered["Year"] == year_filter]
-        else:
-            df_filtered = df_filtered[df_filtered["Year"].isin(year_filter)]
+        df_filtered = df_filtered[df_filtered["Year"].isin(year_filter)]
 
-    # Apply organisation type filter
     if organisation_type_filter is not None:
-        if isinstance(organisation_type_filter, str):
-            df_filtered = df_filtered[
-                (df_filtered["Organisation type"] == organisation_type_filter) |
-                (df_filtered["Organisation"].isin(include_orgs) if include_orgs is not None else False)
-            ]
-        else:
-            df_filtered = df_filtered[df_filtered["Organisation type"].isin(organisation_type_filter)]
+        df_filtered = df_filtered[
+            (df_filtered["Organisation type"].isin(organisation_type_filter)) |
+            (df_filtered["Organisation"].isin(include_orgs) if include_orgs else False)
+        ]
 
-    # Apply organisation filter
     if organisation_filter is not None:
-        if isinstance(organisation_filter, str):
-            df_filtered = df_filtered[
-                (df_filtered["Organisation"] == organisation_filter) |
-                (df_filtered["Organisation"].isin(include_orgs) if include_orgs is not None else False)
-            ]
-        else:
-            df_filtered = df_filtered[
-                (df_filtered["Organisation"].isin(organisation_filter)) |
-                (df_filtered["Organisation"].isin(include_orgs) if include_orgs is not None else False)
-            ]
+        df_filtered = df_filtered[
+            df_filtered["Organisation"].isin(organisation_filter) |
+            (df_filtered["Organisation"].isin(include_orgs) if include_orgs else False)
+        ]
 
-    # Exclude organisations
-    if exclude_orgs is not None:
+    if exclude_orgs:
         df_filtered = df_filtered[
             ~df_filtered["Organisation"].isin(exclude_orgs)
         ]
 
-    # Create pivot table
+    if df_filtered.empty:
+        raise ValueError("No data remains after applying filters")
 
+    # Create pivot table
     # Single organisation over time
     if organisation_filter is not None and year_filter is None:
         df_pivot = df_filtered.pivot_table(
@@ -233,6 +242,9 @@ def filter_pivot_data(
         df_pivot = df_filtered.pivot_table(
             index=["Organisation"], columns="Label", values="Value"
         ).reset_index()
+    else:
+        # Handle edge case where both or neither filters are specified
+        raise ValueError("Must specify either year_filter OR organisation_filter (but not both or neither)")
 
     return df_pivot
 
