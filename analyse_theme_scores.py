@@ -306,8 +306,8 @@ def fit_eei_theme_regressions(df_pivot: pd.DataFrame, eei_label: str, ts_labels:
         slope = model.params.iloc[1]
 
         print(f"Regression results for EEI vs {theme} ({data_description}):")
-        print(f"  R-squared: {r_squared:.4f}")
-        print(f"  P-value: {p_value:.4e}")
+        print(f"  R²: {r_squared:.4f}")
+        print(f"  p-value: {p_value:.4e}")
         print(f"  Equation: EEI = {intercept:.4f} + {slope:.4f} * {theme}")
         print()
 
