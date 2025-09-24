@@ -1,14 +1,21 @@
 # %%
 """
     Purpose
-        Analyse CSPS theme scores by organisation
+        Analyse CSPS theme scores by organisation. Analyses four things:
+            - Organisation-level EEI and theme scores for 2024
+            - Ministerial department organisation-level EEI and theme scores for 2024
+            - CS mean EEI and theme scores over time
+            - CS median EEI and theme scores over time
     Inputs
         - XLSX: "Organisation working file.xlsx"
             - CSPS organisation data
     Outputs
         None
     Notes
-        None
+        - Two organisations are dropped to avoid double-counting:
+            - Ministry of Justice group (including agencies): Dropped as 'Ministry of Justice' (i.e. the core department) exists as a separate organisation in the data
+            - UK Statistics Authority (excluding Office for National Statistics): Dropped as 'UK Statistics Authority' exists as a separate organisation in the data and includes the ONS. ONS is a sub-unit rather than a distinct organisation, therefore we want to include it
+        - DfE figures included in this analysis are group figures, unlike other ministerial departments (see Excel working file for further details)
 """
 
 import os
@@ -44,6 +51,11 @@ TS_LABELS = [
     "Resources and workload"
 ]
 
+ORGS_TO_DROP = [
+    "Ministry of Justice group (including agencies)",
+    "UK Statistics Authority (excluding Office for National Statistics)",
+]
+
 # %%
 # LOAD DATA
 df_csps_organisation = pd.read_excel(CSPS_ORGANISATION_PATH + CSPS_ORGANISATION_FILE_NAME, sheet_name=CSPS_ORGANISATION_SHEET)
@@ -59,6 +71,12 @@ df_csps_organisation_eei_ts = df_csps_organisation.loc[
 # %%
 # Convert 'Value' column to numeric
 df_csps_organisation_eei_ts["Value"] = pd.to_numeric(df_csps_organisation_eei_ts["Value"])
+
+# %%
+# Drop organisations that would introduce double-counting
+df_csps_organisation_eei_ts = df_csps_organisation_eei_ts[
+    ~df_csps_organisation_eei_ts["Organisation"].isin(ORGS_TO_DROP)
+]
 
 # %%
 # Check that all years are present
