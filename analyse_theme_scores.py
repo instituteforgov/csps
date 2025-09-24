@@ -21,7 +21,6 @@
 
 import os
 
-from IPython.display import display
 import pandas as pd
 import seaborn as sns
 import statsmodels.api as sm
@@ -200,24 +199,6 @@ def create_eei_theme_pairplot(df_pivot, eei_label, ts_labels):
     )
 
 
-def calculate_eei_theme_correlations(df_pivot, eei_label, ts_labels):
-    """
-    Calculate correlation matrix for EEI and theme scores.
-
-    Args:
-        df_pivot: DataFrame with pivoted data
-        eei_label: Employee Engagement Index column name
-        ts_labels: List of theme score column names
-
-    Returns:
-        DataFrame with correlation matrix (EEI row, theme score columns)
-    """
-    # Create correlation matrix
-    # NB: Supplying the first value to .loc[] as a list ensures the result is a DataFrame, not a Series
-    corr_matrix = df_pivot.corr(numeric_only=True)
-    return corr_matrix.loc[[eei_label], ts_labels]
-
-
 def fit_eei_theme_regressions(df_pivot, eei_label, ts_labels, data_description, year_filter=None):
     """
     Fit regression models of EEI against each theme score and print results.
@@ -282,11 +263,6 @@ df_csps_organisation_eei_ts_2024_noavgs_pivot = filter_and_pivot_data(
 
 create_eei_theme_pairplot(df_csps_organisation_eei_ts_2024_noavgs_pivot, EEI_LABEL, TS_LABELS)
 
-df_csps_organisation_eei_ts_2024_noavgs_corr = calculate_eei_theme_correlations(
-    df_csps_organisation_eei_ts_2024_noavgs_pivot, EEI_LABEL, TS_LABELS
-)
-display(df_csps_organisation_eei_ts_2024_noavgs_corr)
-
 fit_eei_theme_regressions(
     df_csps_organisation_eei_ts_2024_noavgs_pivot, EEI_LABEL, TS_LABELS, "2024 organisation-level data"
 )
@@ -300,11 +276,6 @@ df_csps_organisation_eei_ts_mean_pivot = filter_and_pivot_data(
 
 create_eei_theme_pairplot(df_csps_organisation_eei_ts_mean_pivot, EEI_LABEL, TS_LABELS)
 
-df_csps_organisation_eei_ts_mean_corr = calculate_eei_theme_correlations(
-    df_csps_organisation_eei_ts_mean_pivot, EEI_LABEL, TS_LABELS
-)
-display(df_csps_organisation_eei_ts_mean_corr)
-
 fit_eei_theme_regressions(
     df_csps_organisation_eei_ts_mean_pivot, EEI_LABEL, TS_LABELS, "2024 mean data", year_filter=2024
 )
@@ -317,11 +288,6 @@ df_csps_organisation_eei_ts_median_pivot = filter_and_pivot_data(
 )
 
 create_eei_theme_pairplot(df_csps_organisation_eei_ts_median_pivot, EEI_LABEL, TS_LABELS)
-
-df_csps_organisation_eei_ts_median_corr = calculate_eei_theme_correlations(
-    df_csps_organisation_eei_ts_median_pivot, EEI_LABEL, TS_LABELS
-)
-display(df_csps_organisation_eei_ts_median_corr)
 
 fit_eei_theme_regressions(
     df_csps_organisation_eei_ts_median_pivot, EEI_LABEL, TS_LABELS, "2024 median data", year_filter=2024
