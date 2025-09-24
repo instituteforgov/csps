@@ -3,7 +3,7 @@
     Purpose
         Analyse CSPS theme scores by organisation. Analyses four things:
             - Organisation-level EEI and theme scores for 2024
-            - Ministerial department organisation-level EEI and theme scores for 2024
+            - Organisation-level EEI and theme scores for departments for 2024
             - CS mean EEI and theme scores over time
             - CS median EEI and theme scores over time
     Inputs
@@ -17,6 +17,7 @@
             - 'Ministry of Justice group (including agencies)': Dropped as 'Ministry of Justice' (i.e. the core department) exists as a separate organisation in the data
             - 'Office for National Statistics' and 'UK Statistics Authority (excluding Office for National Statistics)': Dropped as 'UK Statistics Authority', which includes the ONS, exists as a separate organisation in the data. ONS is a sub-unit rather than a distinct organisation, therefore we want to include it as part of UKSA
         - DfE figures included in this analysis are group figures, unlike other ministerial departments (see Excel working file for further details)
+        - The department-only analysis is carried out on ministerial departments plus HMRC and minus Export Credits Guarantee Department, for consistency with other Whitehall Monitor analysis
 """
 
 import os
@@ -60,6 +61,13 @@ ORGS_TO_DROP = [
     "Office for National Statistics",
     "UK Statistics Authority (excluding Office for National Statistics)",
 ]
+
+# NB: 'Organisations' that are dropped across the organisation-level analysis - mean and median civil service figures - are intentionally not included here
+DEPT_ONLY_CONDITIONS = {
+    "organisation_type_filter": ["Ministerial department"],
+    "exclude_orgs": ["Export Credits Guarantee Department"],
+    "include_orgs": ["HM Revenue and Customs"],
+}
 
 # %%
 # LOAD DATA
@@ -127,6 +135,16 @@ assert len(median_missing) == 0, f"Median missing for years: {median_missing}"
 assert len(mean_missing) == 0, f"Mean missing for years: {mean_missing}"
 
 # %%
+# Check that organisation types and organisations we plan to use in the department-only analysis are present
+org_types_present = df_csps_organisation_eei_ts["Organisation type"].unique()
+org_types_missing = [otype for otype in DEPT_ONLY_CONDITIONS["organisation_type_filter"] if otype not in org_types_present]
+orgs_present = df_csps_organisation_eei_ts["Organisation"].unique()
+orgs_missing = [org for org in DEPT_ONLY_CONDITIONS["include_orgs"] + DEPT_ONLY_CONDITIONS["exclude_orgs"] if org not in orgs_present]
+
+assert len(org_types_missing) == 0, f"Some organisation types for department-only analysis are not present: {org_types_missing}"
+assert len(orgs_missing) == 0, f"Some organisations for department-only analysis are not present: {orgs_missing}"
+
+# %%
 # Check that EEI and theme score values are as expected for each year
 eei_ts_missing = {year: [] for year in range(MIN_YEAR, MAX_YEAR + 1)}
 
@@ -143,29 +161,22 @@ assert len(eei_ts_missing) == 0, f"EEI and theme scores missing for years: {eei_
 
 # %%
 # DEFINE FUNCTIONS
-def filter_and_pivot_data(df, organisation_filter=None, year_filter=None, exclude_orgs=None):
+def filter_and_pivot_data(df, year_filter=None, organisation_type_filter=None, organisation_filter=None, exclude_orgs=None, include_orgs=None):
     """
     Filter CSPS data by organisation and/or year, then create a pivot table.
 
     Args:
         df: DataFrame containing CSPS data
-        organisation_filter: String or list of organisation names to include (optional)
         year_filter: Year or list of years to include (optional)
+        organisation_type_filter: String or list of organisation types to include (optional)
+        organisation_filter: String or list of organisation names to include (optional)
         exclude_orgs: List of organisation names to exclude (optional)
-        eei_label: Employee Engagement Index label
-        ts_labels: List of theme score labels
+        include_orgs: List of organisation names to include that would otherwise be excluded (optional)
 
     Returns:
         DataFrame with pivoted data (Organisation/Year as index, Labels as columns)
     """
     df_filtered = df.copy()
-
-    # Apply organisation filter
-    if organisation_filter is not None:
-        if isinstance(organisation_filter, str):
-            df_filtered = df_filtered[df_filtered["Organisation"] == organisation_filter]
-        else:
-            df_filtered = df_filtered[df_filtered["Organisation"].isin(organisation_filter)]
 
     # Apply year filter
     if year_filter is not None:
@@ -174,9 +185,34 @@ def filter_and_pivot_data(df, organisation_filter=None, year_filter=None, exclud
         else:
             df_filtered = df_filtered[df_filtered["Year"].isin(year_filter)]
 
+    # Apply organisation type filter
+    if organisation_type_filter is not None:
+        if isinstance(organisation_type_filter, str):
+            df_filtered = df_filtered[
+                (df_filtered["Organisation type"] == organisation_type_filter) |
+                (df_filtered["Organisation"].isin(include_orgs) if include_orgs is not None else False)
+            ]
+        else:
+            df_filtered = df_filtered[df_filtered["Organisation type"].isin(organisation_type_filter)]
+
+    # Apply organisation filter
+    if organisation_filter is not None:
+        if isinstance(organisation_filter, str):
+            df_filtered = df_filtered[
+                (df_filtered["Organisation"] == organisation_filter) |
+                (df_filtered["Organisation"].isin(include_orgs) if include_orgs is not None else False)
+            ]
+        else:
+            df_filtered = df_filtered[
+                (df_filtered["Organisation"].isin(organisation_filter)) |
+                (df_filtered["Organisation"].isin(include_orgs) if include_orgs is not None else False)
+            ]
+
     # Exclude organisations
     if exclude_orgs is not None:
-        df_filtered = df_filtered[~df_filtered["Organisation"].isin(exclude_orgs)]
+        df_filtered = df_filtered[
+            ~df_filtered["Organisation"].isin(exclude_orgs)
+        ]
 
     # Create pivot table
 
@@ -282,6 +318,22 @@ create_eei_theme_pairplot(df_csps_organisation_eei_ts_2024_noavgs_pivot, EEI_LAB
 
 fit_eei_theme_regressions(
     df_csps_organisation_eei_ts_2024_noavgs_pivot, EEI_LABEL, TS_LABELS, "2024 organisation-level data"
+)
+
+# %%
+# Organisation-level EEI and theme scores for departments for 2024
+df_csps_organisation_eei_ts_2024_depts_pivot = filter_and_pivot_data(
+    df_csps_organisation_eei_ts,
+    year_filter=2024,
+    organisation_type_filter=DEPT_ONLY_CONDITIONS["organisation_type_filter"],
+    exclude_orgs=[MEDIAN_ORGANISATION_NAME, MEAN_ORGANISATION_NAME] + DEPT_ONLY_CONDITIONS["exclude_orgs"],
+    include_orgs=DEPT_ONLY_CONDITIONS["include_orgs"],
+)
+
+create_eei_theme_pairplot(df_csps_organisation_eei_ts_2024_depts_pivot, EEI_LABEL, TS_LABELS)
+
+fit_eei_theme_regressions(
+    df_csps_organisation_eei_ts_2024_depts_pivot, EEI_LABEL, TS_LABELS, "2024 organisation-level data, depts only"
 )
 
 # %%
