@@ -12,6 +12,7 @@
     Outputs
         None
     Notes
+        - Scottish and Welsh organisations are dropped, but this will only apply to organisation-level analysis and not analysis based on all-organisation averages
         - Two organisations are dropped to avoid double-counting:
             - Ministry of Justice group (including agencies): Dropped as 'Ministry of Justice' (i.e. the core department) exists as a separate organisation in the data
             - UK Statistics Authority (excluding Office for National Statistics): Dropped as 'UK Statistics Authority' exists as a separate organisation in the data and includes the ONS. ONS is a sub-unit rather than a distinct organisation, therefore we want to include it
@@ -51,6 +52,10 @@ TS_LABELS = [
     "Resources and workload"
 ]
 
+DEPT_GROUPS_TO_DROP = [
+    "Scot Gov",
+    "Welsh Gov"
+]
 ORGS_TO_DROP = [
     "Ministry of Justice group (including agencies)",
     "UK Statistics Authority (excluding Office for National Statistics)",
@@ -71,6 +76,12 @@ df_csps_organisation_eei_ts = df_csps_organisation.loc[
 # %%
 # Convert 'Value' column to numeric
 df_csps_organisation_eei_ts["Value"] = pd.to_numeric(df_csps_organisation_eei_ts["Value"])
+
+# %%
+# Drop departmental groups we're not interested in
+df_csps_organisation_eei_ts = df_csps_organisation_eei_ts[
+    ~df_csps_organisation_eei_ts["Departmental group"].isin(DEPT_GROUPS_TO_DROP)
+]
 
 # %%
 # Drop organisations that would introduce double-counting
@@ -315,3 +326,5 @@ display(df_csps_organisation_eei_ts_median_corr)
 fit_eei_theme_regressions(
     df_csps_organisation_eei_ts_median_pivot, EEI_LABEL, TS_LABELS, "2024 median data", year_filter=2024
 )
+
+# %%
