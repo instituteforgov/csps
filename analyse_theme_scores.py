@@ -61,7 +61,7 @@ ORGS_TO_DROP = [
     "UK Statistics Authority (excluding Office for National Statistics)",
 ]
 
-# NB: 'Organisations' that are dropped across the organisation-level analysis - mean and median civil service figures - are intentionally not included here
+# NB: 'Organisations' that are dropped across all the organisation-level analysis - mean and median civil service figures - are intentionally not included here
 DEPT_ONLY_CONDITIONS = {
     "organisation_type_filter": ["Ministerial department"],
     "exclude_orgs": ["Export Credits Guarantee Department"],
