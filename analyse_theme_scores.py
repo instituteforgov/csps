@@ -393,9 +393,9 @@ fit_eei_theme_regressions(
 # %%
 # Print significance legend
 print("Significance levels:")
-print("*** p < 0.001")
-print("**  p < 0.01")
-print("*   p < 0.05")
 print("    p ≥ 0.05 (not significant)")
+print("*   p < 0.05")
+print("**  p < 0.01")
+print("*** p < 0.001")
 
 # %%
