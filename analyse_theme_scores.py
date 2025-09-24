@@ -271,7 +271,7 @@ def create_eei_theme_pairplot(df_pivot: pd.DataFrame, eei_label: str, ts_labels:
     )
 
 
-def fit_eei_theme_regressions(df_pivot: pd.DataFrame, eei_label: str, ts_labels: list[str], data_description: str, year_filter: int | float | None = None) -> None:
+def fit_eei_theme_regressions(df_pivot: pd.DataFrame, eei_label: str, ts_labels: list[str], data_description: str) -> None:
     """
     Fit regression models of EEI against each theme score and print results.
 
@@ -280,13 +280,8 @@ def fit_eei_theme_regressions(df_pivot: pd.DataFrame, eei_label: str, ts_labels:
         eei_label: Employee Engagement Index column name
         ts_labels: List of theme score column names
         data_description: String describing the data for output labels
-        year_filter: Optional year to filter data (for time series data)
     """
     df_analysis = df_pivot.copy()
-
-    # Filter by year if specified (for time series data)
-    if year_filter is not None and "Year" in df_analysis.columns:
-        df_analysis = df_analysis[df_analysis["Year"] == year_filter]
 
     for theme in ts_labels:
         if len(df_analysis) < 2:
@@ -365,7 +360,7 @@ df_csps_organisation_eei_ts_mean_pivot = filter_pivot_data(
 create_eei_theme_pairplot(df_csps_organisation_eei_ts_mean_pivot, EEI_LABEL, TS_LABELS)
 
 fit_eei_theme_regressions(
-    df_csps_organisation_eei_ts_mean_pivot, EEI_LABEL, TS_LABELS, "2024 mean data", year_filter=2024
+    df_csps_organisation_eei_ts_mean_pivot, EEI_LABEL, TS_LABELS, "2024 mean data"
 )
 
 # %%
@@ -378,7 +373,7 @@ df_csps_organisation_eei_ts_median_pivot = filter_pivot_data(
 create_eei_theme_pairplot(df_csps_organisation_eei_ts_median_pivot, EEI_LABEL, TS_LABELS)
 
 fit_eei_theme_regressions(
-    df_csps_organisation_eei_ts_median_pivot, EEI_LABEL, TS_LABELS, "2024 median data", year_filter=2024
+    df_csps_organisation_eei_ts_median_pivot, EEI_LABEL, TS_LABELS, "2024 median data",
 )
 
 # %%
