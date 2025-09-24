@@ -196,7 +196,7 @@ def filter_and_pivot_data(df, organisation_filter=None, year_filter=None, exclud
 
 def create_eei_theme_pairplot(df_pivot, eei_label, ts_labels):
     """
-    Create n x 1 array of scatter plots, showing EEI score versus each theme score.
+    Create n x 1 array of scatter plots, showing EEI score versus each theme score with lines of best fit.
 
     Args:
         df_pivot: DataFrame with pivoted data
@@ -208,7 +208,9 @@ def create_eei_theme_pairplot(df_pivot, eei_label, ts_labels):
     """
     return sns.pairplot(
         df_pivot,
-        plot_kws={"alpha": 0.5},
+        kind="reg",
+        plot_kws={"ci": None, "scatter_kws": {"alpha": 0.5}},
+        diag_kind=None,
         x_vars=ts_labels,
         y_vars=[eei_label]
     )
