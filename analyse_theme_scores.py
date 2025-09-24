@@ -13,9 +13,9 @@
         None
     Notes
         - Scottish and Welsh organisations are dropped, but this will only apply to organisation-level analysis and not analysis based on all-organisation averages
-        - Two organisations are dropped to avoid double-counting:
-            - Ministry of Justice group (including agencies): Dropped as 'Ministry of Justice' (i.e. the core department) exists as a separate organisation in the data
-            - UK Statistics Authority (excluding Office for National Statistics): Dropped as 'UK Statistics Authority' exists as a separate organisation in the data and includes the ONS. ONS is a sub-unit rather than a distinct organisation, therefore we want to include it
+        - Three organisations are dropped to avoid double-counting:
+            - 'Ministry of Justice group (including agencies)': Dropped as 'Ministry of Justice' (i.e. the core department) exists as a separate organisation in the data
+            - 'Office for National Statistics' and 'UK Statistics Authority (excluding Office for National Statistics)': Dropped as 'UK Statistics Authority', which includes the ONS, exists as a separate organisation in the data. ONS is a sub-unit rather than a distinct organisation, therefore we want to include it as part of UKSA
         - DfE figures included in this analysis are group figures, unlike other ministerial departments (see Excel working file for further details)
 """
 
@@ -57,6 +57,7 @@ DEPT_GROUPS_TO_DROP = [
 ]
 ORGS_TO_DROP = [
     "Ministry of Justice group (including agencies)",
+    "Office for National Statistics",
     "UK Statistics Authority (excluding Office for National Statistics)",
 ]
 
@@ -77,10 +78,24 @@ df_csps_organisation_eei_ts = df_csps_organisation.loc[
 df_csps_organisation_eei_ts["Value"] = pd.to_numeric(df_csps_organisation_eei_ts["Value"])
 
 # %%
+# Check that departmental groups we plan to drop are present
+dept_groups_present = df_csps_organisation_eei_ts["Departmental group"].unique()
+dept_groups_missing = [group for group in DEPT_GROUPS_TO_DROP if group not in dept_groups_present]
+
+assert len(dept_groups_missing) == 0, f"Some departmental groups to drop are not present: {dept_groups_missing}"
+
+# %%
 # Drop departmental groups we're not interested in
 df_csps_organisation_eei_ts = df_csps_organisation_eei_ts[
     ~df_csps_organisation_eei_ts["Departmental group"].isin(DEPT_GROUPS_TO_DROP)
 ]
+
+# %%
+# Check that organisations we plan to drop are present
+orgs_present = df_csps_organisation_eei_ts["Organisation"].unique()
+orgs_missing = [org for org in ORGS_TO_DROP if org not in orgs_present]
+
+assert len(orgs_missing) == 0, f"Some organisations to drop are not present: {orgs_missing}"
 
 # %%
 # Drop organisations that would introduce double-counting
