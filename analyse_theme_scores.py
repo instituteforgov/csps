@@ -161,7 +161,14 @@ assert len(eei_ts_missing) == 0, f"EEI and theme scores missing for years: {eei_
 
 # %%
 # DEFINE FUNCTIONS
-def filter_and_pivot_data(df, year_filter=None, organisation_type_filter=None, organisation_filter=None, exclude_orgs=None, include_orgs=None):
+def filter_and_pivot_data(
+    df: pd.DataFrame,
+    year_filter: int | float | list[int | float] | None = None,
+    organisation_type_filter: str | list[str] | None = None,
+    organisation_filter: str | list[str] | None = None,
+    exclude_orgs: list[str] | None = None,
+    include_orgs: list[str] | None = None
+) -> pd.DataFrame:
     """
     Filter CSPS data by organisation and/or year, then create a pivot table.
 
@@ -230,7 +237,7 @@ def filter_and_pivot_data(df, year_filter=None, organisation_type_filter=None, o
     return df_pivot
 
 
-def create_eei_theme_pairplot(df_pivot, eei_label, ts_labels):
+def create_eei_theme_pairplot(df_pivot: pd.DataFrame, eei_label: str, ts_labels: list[str]) -> sns.axisgrid.PairGrid:
     """
     Create n x 1 array of scatter plots, showing EEI score versus each theme score with lines of best fit.
 
@@ -252,7 +259,7 @@ def create_eei_theme_pairplot(df_pivot, eei_label, ts_labels):
     )
 
 
-def fit_eei_theme_regressions(df_pivot, eei_label, ts_labels, data_description, year_filter=None):
+def fit_eei_theme_regressions(df_pivot: pd.DataFrame, eei_label: str, ts_labels: list[str], data_description: str, year_filter: int | float | None = None) -> None:
     """
     Fit regression models of EEI against each theme score and print results.
 
