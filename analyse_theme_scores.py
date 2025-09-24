@@ -81,6 +81,10 @@ df_csps_organisation_eei_ts = df_csps_organisation.loc[
 ].copy()
 
 # %%
+# Convert 'Year' column to integer
+df_csps_organisation_eei_ts["Year"] = df_csps_organisation_eei_ts["Year"].astype(int)
+
+# %%
 # Convert 'Value' column to numeric
 df_csps_organisation_eei_ts["Value"] = pd.to_numeric(df_csps_organisation_eei_ts["Value"])
 
