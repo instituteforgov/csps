@@ -273,8 +273,6 @@ fit_eei_theme_regressions(
 # %%
 # CS median EEI and theme scores over time
 df_csps_organisation_eei_ts_median_pivot = filter_and_pivot_data(
-    df_csps_organisation_eei_ts,
-    organisation_filter=MEDIAN_ORGANISATION_NAME,
     eei_label=EEI_LABEL,
     ts_labels=TS_LABELS
 )
