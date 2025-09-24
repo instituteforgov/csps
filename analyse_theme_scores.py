@@ -415,7 +415,7 @@ df_csps_organisation_eei_ts_median_pivot = filter_pivot_data(
 create_eei_theme_pairplot(df_csps_organisation_eei_ts_median_pivot, EEI_LABEL, TS_LABELS, hue="Year", palette="rocket_r")
 
 fit_eei_theme_regressions(
-    df_csps_organisation_eei_ts_median_pivot, EEI_LABEL, TS_LABELS, "2024 median data",
+    df_csps_organisation_eei_ts_median_pivot, EEI_LABEL, TS_LABELS, "Civil service median data over time"
 )
 
 # %%
