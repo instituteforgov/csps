@@ -161,7 +161,7 @@ assert len(eei_ts_missing) == 0, f"EEI and theme scores missing for years: {eei_
 
 # %%
 # DEFINE FUNCTIONS
-def filter_and_pivot_data(
+def filter_pivot_data(
     df: pd.DataFrame,
     year_filter: int | float | list[int | float] | None = None,
     organisation_type_filter: str | list[str] | None = None,
@@ -315,7 +315,7 @@ def fit_eei_theme_regressions(df_pivot: pd.DataFrame, eei_label: str, ts_labels:
 # %%
 # ANALYSE DATA
 # Organisation-level EEI and theme scores for 2024
-df_csps_organisation_eei_ts_2024_noavgs_pivot = filter_and_pivot_data(
+df_csps_organisation_eei_ts_2024_noavgs_pivot = filter_pivot_data(
     df_csps_organisation_eei_ts,
     year_filter=2024,
     exclude_orgs=[MEDIAN_ORGANISATION_NAME, MEAN_ORGANISATION_NAME],
@@ -329,7 +329,7 @@ fit_eei_theme_regressions(
 
 # %%
 # Organisation-level EEI and theme scores for departments for 2024
-df_csps_organisation_eei_ts_2024_depts_pivot = filter_and_pivot_data(
+df_csps_organisation_eei_ts_2024_depts_pivot = filter_pivot_data(
     df_csps_organisation_eei_ts,
     year_filter=2024,
     organisation_type_filter=DEPT_ONLY_CONDITIONS["organisation_type_filter"],
@@ -345,7 +345,7 @@ fit_eei_theme_regressions(
 
 # %%
 # CS mean EEI and theme scores over time
-df_csps_organisation_eei_ts_mean_pivot = filter_and_pivot_data(
+df_csps_organisation_eei_ts_mean_pivot = filter_pivot_data(
     df_csps_organisation_eei_ts,
     organisation_filter=MEAN_ORGANISATION_NAME,
 )
@@ -358,7 +358,7 @@ fit_eei_theme_regressions(
 
 # %%
 # CS median EEI and theme scores over time
-df_csps_organisation_eei_ts_median_pivot = filter_and_pivot_data(
+df_csps_organisation_eei_ts_median_pivot = filter_pivot_data(
     df_csps_organisation_eei_ts,
     organisation_filter=MEDIAN_ORGANISATION_NAME,
 )
