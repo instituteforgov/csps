@@ -99,7 +99,7 @@ assert len(eei_ts_missing) == 0, f"EEI and theme scores missing for years: {eei_
 
 # %%
 # DEFINE FUNCTIONS
-def filter_and_pivot_data(df, organisation_filter=None, year_filter=None, exclude_orgs=None, eei_label=None, ts_labels=None):
+def filter_and_pivot_data(df, organisation_filter=None, year_filter=None, exclude_orgs=None):
     """
     Filter CSPS data by organisation and/or year, then create a pivot table.
 
@@ -146,12 +146,6 @@ def filter_and_pivot_data(df, organisation_filter=None, year_filter=None, exclud
         df_pivot = df_filtered.pivot_table(
             index=["Organisation"], columns="Label", values="Value"
         ).reset_index()
-
-    # XXX Convert EEI and theme score columns to numeric
-    # if eei_label and ts_labels:
-    #     for col in [eei_label] + ts_labels:
-    #         if col in df_pivot.columns:
-    #             df_pivot[col] = pd.to_numeric(df_pivot[col])
 
     return df_pivot
 
