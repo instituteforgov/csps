@@ -166,7 +166,8 @@ def filter_pivot_data(
     organisation_type_filter: str | list[str] | None = None,
     organisation_filter: str | list[str] | None = None,
     exclude_orgs: list[str] | None = None,
-    include_orgs: list[str] | None = None
+    include_orgs: list[str] | None = None,
+    preserve_columns: list[str] | None = None
 ) -> pd.DataFrame:
     """
     Filter CSPS data by organisation and/or year, then create a pivot table.
@@ -178,9 +179,10 @@ def filter_pivot_data(
         organisation_filter: String or list of organisation names to include (optional)
         exclude_orgs: List of organisation names to exclude (optional)
         include_orgs: List of organisation names to include that would otherwise be excluded (optional)
+        preserve_columns: List of additional columns to preserve in the pivot table (optional)
 
     Returns:
-        DataFrame with pivoted data (Organisation/Year as index, Labels as columns)
+        DataFrame with pivoted data (Organisation/Year as index, Labels as columns, plus any preserved columns)
 
     Raises:
         TypeError: If df is not a pandas DataFrame
@@ -202,6 +204,9 @@ def filter_pivot_data(
 
     if isinstance(organisation_filter, str):
         organisation_filter = [organisation_filter]
+
+    if preserve_columns is None:
+        preserve_columns = []
 
     # Create filtered copy
     df_filtered = df.copy()
@@ -234,12 +239,12 @@ def filter_pivot_data(
     # Single organisation over time
     if organisation_filter is not None and year_filter is None:
         df_pivot = df_filtered.pivot_table(
-            index=["Year"], columns="Label", values="Value"
+            index=["Year"] + preserve_columns, columns="Label", values="Value"
         ).reset_index()
     # Multiple organisations in a specific year
     elif organisation_filter is None and year_filter is not None:
         df_pivot = df_filtered.pivot_table(
-            index=["Organisation"], columns="Label", values="Value"
+            index=["Organisation"] + preserve_columns, columns="Label", values="Value"
         ).reset_index()
     else:
         # Handle edge case where both or neither filters are specified
@@ -248,7 +253,7 @@ def filter_pivot_data(
     return df_pivot
 
 
-def create_eei_theme_pairplot(df_pivot: pd.DataFrame, eei_label: str, ts_labels: list[str]) -> sns.axisgrid.PairGrid:
+def create_eei_theme_pairplot(df_pivot: pd.DataFrame, eei_label: str, ts_labels: list[str], hue: str = None, palette: str = None) -> sns.axisgrid.PairGrid:
     """
     Create n x 1 array of scatter plots, showing EEI score versus each theme score with lines of best fit.
 
@@ -256,18 +261,49 @@ def create_eei_theme_pairplot(df_pivot: pd.DataFrame, eei_label: str, ts_labels:
         df_pivot: DataFrame with pivoted data
         eei_label: Employee Engagement Index column name
         ts_labels: List of theme score column names
+        hue: Column name to use for colour coding (optional)
 
     Returns:
         seaborn PairGrid object
     """
-    return sns.pairplot(
-        df_pivot,
-        kind="reg",
-        plot_kws={"ci": None, "scatter_kws": {"alpha": 0.5}},
-        diag_kind=None,
-        x_vars=ts_labels,
-        y_vars=[eei_label]
-    )
+    # When using hue, create scatter plots first, then add regression line manually
+    if hue is not None:
+        g = sns.pairplot(
+            df_pivot,
+            kind="scatter",
+            diag_kind=None,
+            x_vars=ts_labels,
+            y_vars=[eei_label],
+            hue=hue,
+            palette=palette,
+            plot_kws={"alpha": 0.7, "s": 50}
+        )
+
+        # Add regression lines manually
+        for i, theme in enumerate(ts_labels):
+            ax = g.axes[0, i]
+            sns.regplot(
+                data=df_pivot,
+                x=theme,
+                y=eei_label,
+                ax=ax,
+                scatter=False,
+                line_kws={"color": "#333F48", "alpha": 0.5},
+                ci=None
+            )
+
+        return g
+
+    # Original behaviour for non-hue case
+    else:
+        return sns.pairplot(
+            df_pivot,
+            kind="reg",
+            plot_kws={"ci": None, "scatter_kws": {"alpha": 0.5}, "line_kws": {"linewidth": 1.5}},
+            diag_kind=None,
+            x_vars=ts_labels,
+            y_vars=[eei_label],
+        )
 
 
 def fit_eei_theme_regressions(df_pivot: pd.DataFrame, eei_label: str, ts_labels: list[str], data_description: str) -> None:
@@ -339,9 +375,10 @@ df_csps_organisation_eei_ts_2024_noavgs_pivot = filter_pivot_data(
     df_csps_organisation_eei_ts,
     year_filter=2024,
     exclude_orgs=[MEDIAN_ORGANISATION_NAME, MEAN_ORGANISATION_NAME],
+    preserve_columns=["Organisation type"]
 )
 
-create_eei_theme_pairplot(df_csps_organisation_eei_ts_2024_noavgs_pivot, EEI_LABEL, TS_LABELS)
+create_eei_theme_pairplot(df_csps_organisation_eei_ts_2024_noavgs_pivot, EEI_LABEL, TS_LABELS, hue="Organisation type")
 
 fit_eei_theme_regressions(
     df_csps_organisation_eei_ts_2024_noavgs_pivot, EEI_LABEL, TS_LABELS, "2024 organisation-level data"
@@ -355,9 +392,10 @@ df_csps_organisation_eei_ts_2024_depts_pivot = filter_pivot_data(
     organisation_type_filter=DEPT_ONLY_CONDITIONS["organisation_type_filter"],
     exclude_orgs=[MEDIAN_ORGANISATION_NAME, MEAN_ORGANISATION_NAME] + DEPT_ONLY_CONDITIONS["exclude_orgs"],
     include_orgs=DEPT_ONLY_CONDITIONS["include_orgs"],
+    preserve_columns=["Organisation type"]
 )
 
-create_eei_theme_pairplot(df_csps_organisation_eei_ts_2024_depts_pivot, EEI_LABEL, TS_LABELS)
+create_eei_theme_pairplot(df_csps_organisation_eei_ts_2024_depts_pivot, EEI_LABEL, TS_LABELS, hue="Organisation type")
 
 fit_eei_theme_regressions(
     df_csps_organisation_eei_ts_2024_depts_pivot, EEI_LABEL, TS_LABELS, "2024 organisation-level data, depts only"
@@ -370,7 +408,7 @@ df_csps_organisation_eei_ts_median_pivot = filter_pivot_data(
     organisation_filter=MEDIAN_ORGANISATION_NAME,
 )
 
-create_eei_theme_pairplot(df_csps_organisation_eei_ts_median_pivot, EEI_LABEL, TS_LABELS)
+create_eei_theme_pairplot(df_csps_organisation_eei_ts_median_pivot, EEI_LABEL, TS_LABELS, hue="Year", palette="rocket_r")
 
 fit_eei_theme_regressions(
     df_csps_organisation_eei_ts_median_pivot, EEI_LABEL, TS_LABELS, "2024 median data",
