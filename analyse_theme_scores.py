@@ -283,6 +283,17 @@ def fit_eei_theme_regressions(df_pivot: pd.DataFrame, eei_label: str, ts_labels:
     """
     df_analysis = df_pivot.copy()
 
+    def get_significance_stars(p_value: float) -> str:
+        """Return asterisks based on p-value significance levels."""
+        if p_value < 0.001:
+            return "***"
+        elif p_value < 0.01:
+            return "**"
+        elif p_value < 0.05:
+            return "*"
+        else:
+            return ""
+
     for theme in ts_labels:
         if len(df_analysis) < 2:
             print(f"Insufficient data for regression: EEI vs {theme} ({data_description})")
@@ -312,10 +323,13 @@ def fit_eei_theme_regressions(df_pivot: pd.DataFrame, eei_label: str, ts_labels:
         intercept = model.params.iloc[0]
         slope = model.params.iloc[1]
 
+        # Get significance stars
+        stars = get_significance_stars(p_value)
+
         print(f"Regression results for EEI vs {theme} ({data_description}):")
         print(f"  R²: {r_squared:.4f}")
-        print(f"  p-value: {p_value:.4e}")
-        print(f"  Equation: EEI = {intercept:.4f} + {slope:.4f} * {theme}")
+        print(f"  p-value: {p_value:.4f}{stars}")
+        print(f"  Equation: y = {intercept:.4f} + {slope:.4f}x")
         print()
 
 
@@ -375,5 +389,13 @@ create_eei_theme_pairplot(df_csps_organisation_eei_ts_median_pivot, EEI_LABEL, T
 fit_eei_theme_regressions(
     df_csps_organisation_eei_ts_median_pivot, EEI_LABEL, TS_LABELS, "2024 median data",
 )
+
+# %%
+# Print significance legend
+print("Significance levels:")
+print("*** p < 0.001")
+print("**  p < 0.01")
+print("*   p < 0.05")
+print("    p ≥ 0.05 (not significant)")
 
 # %%
