@@ -350,14 +350,14 @@ def filter_pivot_data(
     return df_pivot
 
 
-def create_eei_theme_pairplot(df_pivot: pd.DataFrame, eei_label: str, ts_labels: list[str], hue: str = None, palette: str = None) -> sns.axisgrid.PairGrid:
+def create_1d_pairplot(df: pd.DataFrame, x_vars: list[str], y_var: str, hue: str = None, palette: str = None) -> sns.axisgrid.PairGrid:
     """
     Create n x 1 array of scatter plots, showing EEI score versus each theme score with lines of best fit.
 
     Args:
-        df_pivot: DataFrame with pivoted data
-        eei_label: Employee Engagement Index column name
-        ts_labels: List of theme score column names
+        df: DataFrame with data in wide format (measures in individual columns)
+        x_vars: Measures to use as x variables
+        y_var: Measure to use as y variable
         hue: Column name to use for colour coding (optional)
 
     Returns:
@@ -366,23 +366,23 @@ def create_eei_theme_pairplot(df_pivot: pd.DataFrame, eei_label: str, ts_labels:
     # When using hue, create scatter plots first, then add regression line manually
     if hue is not None:
         g = sns.pairplot(
-            df_pivot,
+            df,
             kind="scatter",
             diag_kind=None,
-            x_vars=ts_labels,
-            y_vars=[eei_label],
+            x_vars=x_vars,
+            y_vars=[y_var],
             hue=hue,
             palette=palette,
             plot_kws={"alpha": 0.7, "s": 50}
         )
 
         # Add regression lines manually
-        for i, theme in enumerate(ts_labels):
+        for i, theme in enumerate(x_vars):
             ax = g.axes[0, i]
             sns.regplot(
-                data=df_pivot,
+                data=df,
                 x=theme,
-                y=eei_label,
+                y=y_var,
                 ax=ax,
                 scatter=False,
                 line_kws={"color": "#333F48", "alpha": 0.5},
@@ -394,12 +394,12 @@ def create_eei_theme_pairplot(df_pivot: pd.DataFrame, eei_label: str, ts_labels:
     # Original behaviour for non-hue case
     else:
         return sns.pairplot(
-            df_pivot,
+            df,
             kind="reg",
             plot_kws={"ci": None, "scatter_kws": {"alpha": 0.5}, "line_kws": {"linewidth": 1.5}},
             diag_kind=None,
-            x_vars=ts_labels,
-            y_vars=[eei_label],
+            x_vars=x_vars,
+            y_vars=[y_var],
         )
 
 
