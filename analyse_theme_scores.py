@@ -419,11 +419,18 @@ fit_eei_theme_regressions(
 )
 
 # %%
-# Print significance legend
+# Print significance legend and R² thresholds
 print("Significance levels:")
-print("    p ≥ 0.05 (not significant)")
-print("*   p < 0.05")
-print("**  p < 0.01")
 print("*** p < 0.001")
+print("**  p < 0.01")
+print("*   p < 0.05")
+print("    p ≥ 0.05 (not significant)")
+print()
+
+print("R² thresholds:")
+print("R² = 0 = none")
+print("0 < R² <= 0.1 = weak")
+print("0.1 < R² <= 0.35 = moderate")
+print("R² > 0.35 = strong")
 
 # %%
