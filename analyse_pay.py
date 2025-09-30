@@ -23,7 +23,7 @@ import os
 
 import pandas as pd
 
-from utils import check_csps_data, check_pay_data, edit_csps_data, edit_pay_data
+import utils
 
 # %%
 # SET CONSTANTS
@@ -85,7 +85,7 @@ df_pay = pd.read_excel(PAY_PATH + PAY_FILE_NAME, sheet_name=PAY_SHEET, na_values
 
 # %%
 # RUN CHECKS ON DATA
-check_csps_data(
+utils.check_csps_data(
     df_csps_organisation,
     CSPS_MIN_YEAR,
     CSPS_MAX_YEAR,
@@ -99,7 +99,7 @@ check_csps_data(
     TS_LABELS
 )
 
-check_pay_data(
+utils.check_pay_data(
     df_pay,
     PAY_MIN_YEAR,
     PAY_MAX_YEAR,
@@ -111,13 +111,13 @@ check_pay_data(
 
 # %%
 # EDIT DATA
-df_csps_organisation_eei_ts = edit_csps_data(
+df_csps_organisation_eei_ts = utils.edit_csps_data(
     df_csps_organisation,
     DEPT_GROUPS_TO_DROP,
     ORGS_TO_DROP
 )
 
-df_pay_cleaned = edit_pay_data(
+df_pay_cleaned = utils.edit_pay_data(
     df_pay,
     DEPT_GROUPS_TO_DROP,
 )
