@@ -11,7 +11,8 @@
     Outputs
         None
     Notes
-        - Scottish and Welsh organisations are dropped, but this will only apply to organisation-level analysis and not analysis based on all-organisation averages
+        - Analysis is not carried out on CS mean figures, as there are insufficient data points: these are only available from 2019 onwards
+        - Scottish and Welsh organisations are dropped, but this only applies to organisation-level analysis and not analysis based on the CS median
         - Three organisations are dropped to avoid double-counting:
             - 'Ministry of Justice group (including agencies)': Dropped as 'Ministry of Justice' (i.e. the core department) exists as a separate organisation in the data
             - 'Office for National Statistics' and 'UK Statistics Authority (excluding Office for National Statistics)': Dropped as 'UK Statistics Authority', which includes the ONS, exists as a separate organisation in the data. ONS is a sub-unit rather than a distinct organisation, therefore we want to include it as part of UKSA
