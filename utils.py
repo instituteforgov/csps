@@ -89,6 +89,77 @@ def check_csps_data(
     assert len(eei_ts_missing) == 0, f"EEI and theme scores missing for years: {eei_ts_missing}"
 
 
+def check_pay_data(
+    df: pd.DataFrame,
+    pay_min_year: int,
+    pay_max_year: int,
+    dept_groups_to_drop: list[str],
+    dept_only_conditions: dict,
+    pay_summary_organisation_name: str,
+    pay_summary_grade_name: str,
+) -> None:
+    """
+    Run data validation checks on pay dataframe.
+
+    Args:
+        df: The pay dataframe to validate
+        pay_min_year: Minimum expected year in the data
+        pay_max_year: Maximum expected year in the data
+        dept_groups_to_drop: List of departmental groups that should be present for dropping
+        dept_only_conditions: Dictionary with organisation type and organisation filters for department analysis
+        pay_summary_organisation_name: Name of the overall civil service summary organisation
+        pay_summary_grade_name: Name of the overall civil service summary grade
+
+    Raises:
+        AssertionError: If any validation check fails
+
+    Notes:
+        Unlike check_csps_data, this function does need to check for any organisations that we will need to drop.
+    """
+    # Check that all years are present
+    years_present = df["Year"].unique()
+    years_missing = [year for year in range(pay_min_year, pay_max_year + 1) if year not in years_present]
+
+    assert all(year in years_present for year in range(pay_min_year, pay_max_year + 1)), f"Not all years are present: {years_missing}"
+
+    # Check that departmental groups we plan to drop are present
+    dept_groups_present = df["Departmental group"].unique()
+    dept_groups_missing = [group for group in dept_groups_to_drop if group not in dept_groups_present]
+
+    assert len(dept_groups_missing) == 0, f"Some departmental groups to drop are not present: {dept_groups_missing}"
+
+    # Check that organisation types and organisations we plan to use in the department-only analysis are present
+    org_types_present = df["Organisation type"].unique()
+    org_types_missing = [otype for otype in dept_only_conditions["organisation_type_filter"] if otype not in org_types_present]
+    orgs_present = df["Organisation"].unique()
+    orgs_missing = [org for org in dept_only_conditions["include_orgs"] + dept_only_conditions["exclude_orgs"] if org not in orgs_present]
+
+    assert len(org_types_missing) == 0, f"Some organisation types for department-only analysis are not present: {org_types_missing}"
+    assert len(orgs_missing) == 0, f"Some organisations for department-only analysis are not present: {orgs_missing}"
+
+    # Check that overall figures are present for all years
+    overall_missing = []
+
+    for year in range(pay_min_year, pay_max_year + 1):
+        df_year = df[df["Year"] == year]
+        if pay_summary_organisation_name not in df_year["Organisation"].values:
+            overall_missing.append(year)
+
+    assert len(overall_missing) == 0, f"Overall figures missing for years: {overall_missing}"
+
+    # Check that 'All employees' Grade values are present for each year
+    grade_missing = {year: [] for year in range(pay_min_year, pay_max_year + 1)}
+
+    for year in range(pay_min_year, pay_max_year + 1):
+        df_year = df[df["Year"] == year]
+        if pay_summary_grade_name not in df_year["Grade"].values:
+            grade_missing[year].append(pay_summary_grade_name)
+        if len(grade_missing[year]) == 0:
+            del grade_missing[year]
+
+    assert len(grade_missing) == 0, f"'{pay_summary_grade_name}' Grade missing for years: {grade_missing}"
+
+
 def edit_csps_data(
     df: pd.DataFrame,
     dept_groups_to_drop: list[str],
@@ -125,6 +196,40 @@ def edit_csps_data(
     # Drop organisations that would introduce double-counting
     df_processed = df_processed[
         ~df_processed["Organisation"].isin(orgs_to_drop)
+    ]
+
+    return df_processed
+
+
+def edit_pay_data(
+    df: pd.DataFrame,
+    dept_groups_to_drop: list[str],
+) -> pd.DataFrame:
+    """
+    Apply data transformations and cleaning to pay dataframe.
+
+    Args:
+        df: The raw pay dataframe
+        dept_groups_to_drop: List of departmental groups to exclude
+
+    Returns:
+        pd.DataFrame: Cleaned and processed pay dataframe
+
+    Notes:
+        Unlike edit_csps_data, this function does not need to drop any organisations to avoid double-counting.
+    """
+    # Restrict to 'All employees' Grade
+    df_processed = df[df["Grade"] == "All employees"].copy()
+
+    # Convert 'Year' column to integer
+    df_processed["Year"] = df_processed["Year"].astype(int)
+
+    # Convert 'Median salary' column to numeric
+    df_processed["Median salary"] = pd.to_numeric(df_processed["Median salary"])
+
+    # Drop departmental groups we're not interested in
+    df_processed = df_processed[
+        ~df_processed["Departmental group"].isin(dept_groups_to_drop)
     ]
 
     return df_processed
