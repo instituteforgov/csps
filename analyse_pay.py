@@ -18,6 +18,7 @@
         -- See "analyse_theme_scores.py" for notes on the CSPS source data and analytical decisions made there: all points apply here too
         -- Figures ascribed to a department in our pay data are for core departments: we don't hold departmental group data in our version of the pay data
         -- There will be a slight mismatch in coverage for the DfE: CSPS data will be group figures while pay data will be core department only
+        -- CSPS is conducted in September-October each year, while pay date is as at the 31st March of the respective year
 """
 
 import os
