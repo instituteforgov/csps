@@ -1,7 +1,7 @@
 # %%
 """
     Purpose
-        Analyse CSPS theme scores by organisation. Analyses four things:
+        Analyse CSPS theme scores by organisation. Analyses three things:
             - Organisation-level EEI and theme scores for 2024
             - Organisation-level EEI and theme scores for departments for 2024
             - CS median EEI and theme scores over time
