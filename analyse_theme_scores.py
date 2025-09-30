@@ -28,16 +28,16 @@ import statsmodels.api as sm
 
 # %%
 # SET CONSTANTS
-CSPS_ORGANISATION_PATH = "C:/Users/" + os.getlogin() + "/Institute for Government/Data - General/Civil service/Civil Service - People Survey/"
-CSPS_ORGANISATION_FILE_NAME = "Organisation working file.xlsx"
-CSPS_ORGANISATION_SHEET = "Data.Collated"
+CSPS_PATH = "C:/Users/" + os.getlogin() + "/Institute for Government/Data - General/Civil service/Civil Service - People Survey/"
+CSPS_FILE_NAME = "Organisation working file.xlsx"
+CSPS_SHEET = "Data.Collated"
 
-MEDIAN_ORGANISATION_NAME = "Civil Service benchmark"
-MEAN_ORGANISATION_NAME = "All employees"
+CSPS_MEDIAN_ORGANISATION_NAME = "Civil Service benchmark"
+CSPS_MEAN_ORGANISATION_NAME = "All employees"
 
-MIN_YEAR = 2010
-MAX_YEAR = 2024
-MEAN_MIN_YEAR = 2019
+CSPS_MIN_YEAR = 2010
+CSPS_MAX_YEAR = 2024
+CSPS_MEAN_MIN_YEAR = 2019
 
 EEI_LABEL = "Employee Engagement Index"
 TS_LABELS = [
@@ -71,7 +71,69 @@ DEPT_ONLY_CONDITIONS = {
 
 # %%
 # LOAD DATA
-df_csps_organisation = pd.read_excel(CSPS_ORGANISATION_PATH + CSPS_ORGANISATION_FILE_NAME, sheet_name=CSPS_ORGANISATION_SHEET)
+df_csps_organisation = pd.read_excel(CSPS_PATH + CSPS_FILE_NAME, sheet_name=CSPS_SHEET)
+
+# %%
+# RUN CHECKS ON DATA
+# Check that all years are present
+years_present = df_csps_organisation["Year"].unique()
+years_missing = [year for year in range(CSPS_MIN_YEAR, CSPS_MAX_YEAR + 1) if year not in years_present]
+
+assert all(year in years_present for year in range(CSPS_MIN_YEAR, CSPS_MAX_YEAR + 1)), f"Not all years are present: {years_missing}"
+
+# %%
+# Check that departmental groups we plan to drop are present
+dept_groups_present = df_csps_organisation["Departmental group"].unique()
+dept_groups_missing = [group for group in DEPT_GROUPS_TO_DROP if group not in dept_groups_present]
+
+assert len(dept_groups_missing) == 0, f"Some departmental groups to drop are not present: {dept_groups_missing}"
+
+# %%
+# Check that organisations we plan to drop are present
+orgs_present = df_csps_organisation["Organisation"].unique()
+orgs_missing = [org for org in ORGS_TO_DROP if org not in orgs_present]
+
+assert len(orgs_missing) == 0, f"Some organisations to drop are not present: {orgs_missing}"
+
+# %%
+# Check that organisation types and organisations we plan to use in the department-only analysis are present
+org_types_present = df_csps_organisation["Organisation type"].unique()
+org_types_missing = [otype for otype in DEPT_ONLY_CONDITIONS["organisation_type_filter"] if otype not in org_types_present]
+orgs_present = df_csps_organisation["Organisation"].unique()
+orgs_missing = [org for org in DEPT_ONLY_CONDITIONS["include_orgs"] + DEPT_ONLY_CONDITIONS["exclude_orgs"] if org not in orgs_present]
+
+assert len(org_types_missing) == 0, f"Some organisation types for department-only analysis are not present: {org_types_missing}"
+assert len(orgs_missing) == 0, f"Some organisations for department-only analysis are not present: {orgs_missing}"
+
+# %%
+# Check that median and mean figures are present for all years
+median_missing = []
+mean_missing = []
+
+for year in range(CSPS_MIN_YEAR, CSPS_MAX_YEAR + 1):
+    df_year = df_csps_organisation[df_csps_organisation["Year"] == year]
+    if CSPS_MEDIAN_ORGANISATION_NAME not in df_year["Organisation"].values:
+        median_missing.append(year)
+    if year >= CSPS_MEAN_MIN_YEAR:
+        if CSPS_MEAN_ORGANISATION_NAME not in df_year["Organisation"].values:
+            mean_missing.append(year)
+
+assert len(median_missing) == 0, f"Median missing for years: {median_missing}"
+assert len(mean_missing) == 0, f"Mean missing for years: {mean_missing}"
+
+# %%
+# Check that EEI and theme score values are present for each year
+eei_ts_missing = {year: [] for year in range(CSPS_MIN_YEAR, CSPS_MAX_YEAR + 1)}
+
+for year in range(CSPS_MIN_YEAR, CSPS_MAX_YEAR + 1):
+    df_year = df_csps_organisation[df_csps_organisation["Year"] == year]
+    for label in [EEI_LABEL] + TS_LABELS:
+        if label not in df_year["Label"].values:
+            eei_ts_missing[year].append(label)
+    if len(eei_ts_missing[year]) == 0:
+        del eei_ts_missing[year]
+
+assert len(eei_ts_missing) == 0, f"EEI and theme scores missing for years: {eei_ts_missing}"
 
 # %%
 # EDIT DATA
@@ -90,77 +152,16 @@ df_csps_organisation_eei_ts["Year"] = df_csps_organisation_eei_ts["Year"].astype
 df_csps_organisation_eei_ts["Value"] = pd.to_numeric(df_csps_organisation_eei_ts["Value"])
 
 # %%
-# Check that departmental groups we plan to drop are present
-dept_groups_present = df_csps_organisation_eei_ts["Departmental group"].unique()
-dept_groups_missing = [group for group in DEPT_GROUPS_TO_DROP if group not in dept_groups_present]
-
-assert len(dept_groups_missing) == 0, f"Some departmental groups to drop are not present: {dept_groups_missing}"
-
-# %%
 # Drop departmental groups we're not interested in
 df_csps_organisation_eei_ts = df_csps_organisation_eei_ts[
     ~df_csps_organisation_eei_ts["Departmental group"].isin(DEPT_GROUPS_TO_DROP)
 ]
 
 # %%
-# Check that organisations we plan to drop are present
-orgs_present = df_csps_organisation_eei_ts["Organisation"].unique()
-orgs_missing = [org for org in ORGS_TO_DROP if org not in orgs_present]
-
-assert len(orgs_missing) == 0, f"Some organisations to drop are not present: {orgs_missing}"
-
-# %%
 # Drop organisations that would introduce double-counting
 df_csps_organisation_eei_ts = df_csps_organisation_eei_ts[
     ~df_csps_organisation_eei_ts["Organisation"].isin(ORGS_TO_DROP)
 ]
-
-# %%
-# Check that all years are present
-years_present = df_csps_organisation_eei_ts["Year"].unique()
-years_missing = [year for year in range(MIN_YEAR, MAX_YEAR + 1) if year not in years_present]
-
-assert all(year in years_present for year in range(MIN_YEAR, MAX_YEAR + 1)), f"Not all years are present: {years_missing}"
-
-# %%
-# Check that median and mean figures are present for all years
-median_missing = []
-mean_missing = []
-
-for year in range(MIN_YEAR, MAX_YEAR + 1):
-    df_year = df_csps_organisation_eei_ts[df_csps_organisation_eei_ts["Year"] == year]
-    if MEDIAN_ORGANISATION_NAME not in df_year["Organisation"].values:
-        median_missing.append(year)
-    if year >= MEAN_MIN_YEAR:
-        if MEAN_ORGANISATION_NAME not in df_year["Organisation"].values:
-            mean_missing.append(year)
-
-assert len(median_missing) == 0, f"Median missing for years: {median_missing}"
-assert len(mean_missing) == 0, f"Mean missing for years: {mean_missing}"
-
-# %%
-# Check that organisation types and organisations we plan to use in the department-only analysis are present
-org_types_present = df_csps_organisation_eei_ts["Organisation type"].unique()
-org_types_missing = [otype for otype in DEPT_ONLY_CONDITIONS["organisation_type_filter"] if otype not in org_types_present]
-orgs_present = df_csps_organisation_eei_ts["Organisation"].unique()
-orgs_missing = [org for org in DEPT_ONLY_CONDITIONS["include_orgs"] + DEPT_ONLY_CONDITIONS["exclude_orgs"] if org not in orgs_present]
-
-assert len(org_types_missing) == 0, f"Some organisation types for department-only analysis are not present: {org_types_missing}"
-assert len(orgs_missing) == 0, f"Some organisations for department-only analysis are not present: {orgs_missing}"
-
-# %%
-# Check that EEI and theme score values are as expected for each year
-eei_ts_missing = {year: [] for year in range(MIN_YEAR, MAX_YEAR + 1)}
-
-for year in range(MIN_YEAR, MAX_YEAR + 1):
-    df_year = df_csps_organisation_eei_ts[df_csps_organisation_eei_ts["Year"] == year]
-    for label in [EEI_LABEL] + TS_LABELS:
-        if label not in df_year["Label"].values:
-            eei_ts_missing[year].append(label)
-    if len(eei_ts_missing[year]) == 0:
-        del eei_ts_missing[year]
-
-assert len(eei_ts_missing) == 0, f"EEI and theme scores missing for years: {eei_ts_missing}"
 
 
 # %%
@@ -379,7 +380,7 @@ def fit_eei_theme_regressions(df_pivot: pd.DataFrame, eei_label: str, ts_labels:
 df_csps_organisation_eei_ts_2024_noavgs_pivot = filter_pivot_data(
     df_csps_organisation_eei_ts,
     year_filter=2024,
-    exclude_orgs=[MEDIAN_ORGANISATION_NAME, MEAN_ORGANISATION_NAME],
+    exclude_orgs=[CSPS_MEDIAN_ORGANISATION_NAME, CSPS_MEAN_ORGANISATION_NAME],
     preserve_columns=["Organisation type"]
 )
 
@@ -395,7 +396,7 @@ df_csps_organisation_eei_ts_2024_depts_pivot = filter_pivot_data(
     df_csps_organisation_eei_ts,
     year_filter=2024,
     organisation_type_filter=DEPT_ONLY_CONDITIONS["organisation_type_filter"],
-    exclude_orgs=[MEDIAN_ORGANISATION_NAME, MEAN_ORGANISATION_NAME] + DEPT_ONLY_CONDITIONS["exclude_orgs"],
+    exclude_orgs=[CSPS_MEDIAN_ORGANISATION_NAME, CSPS_MEAN_ORGANISATION_NAME] + DEPT_ONLY_CONDITIONS["exclude_orgs"],
     include_orgs=DEPT_ONLY_CONDITIONS["include_orgs"],
     preserve_columns=["Organisation type"]
 )
@@ -410,7 +411,7 @@ fit_eei_theme_regressions(
 # CS median EEI and theme scores over time
 df_csps_organisation_eei_ts_median_pivot = filter_pivot_data(
     df_csps_organisation_eei_ts,
-    organisation_filter=MEDIAN_ORGANISATION_NAME,
+    organisation_filter=CSPS_MEDIAN_ORGANISATION_NAME,
 )
 
 create_eei_theme_pairplot(df_csps_organisation_eei_ts_median_pivot, EEI_LABEL, TS_LABELS, hue="Year", palette="rocket_r")
