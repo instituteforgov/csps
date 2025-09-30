@@ -165,7 +165,9 @@ def check_pay_data(
 def edit_csps_data(
     df: pd.DataFrame,
     dept_groups_to_drop: list[str],
-    orgs_to_drop: list[str]
+    orgs_to_drop: list[str],
+    min_year: int = None,
+    max_year: int = None
 ) -> pd.DataFrame:
     """
     Apply data transformations and cleaning to CSPS dataframe.
@@ -174,6 +176,8 @@ def edit_csps_data(
         df: The raw CSPS organisation dataframe
         dept_groups_to_drop: List of departmental groups to exclude
         orgs_to_drop: List of organisations to exclude to avoid double-counting
+        min_year: Minimum year to include (optional)
+        max_year: Maximum year to include (optional)
 
     Returns:
         pd.DataFrame: Cleaned and processed dataframe with EEI and theme scores only
@@ -189,6 +193,12 @@ def edit_csps_data(
 
     # Convert 'Value' column to numeric
     df_processed["Value"] = pd.to_numeric(df_processed["Value"])
+
+    # Restrict to specified year range
+    if min_year is not None:
+        df_processed = df_processed[df_processed["Year"] >= min_year]
+    if max_year is not None:
+        df_processed = df_processed[df_processed["Year"] <= max_year]
 
     # Drop departmental groups we're not interested in
     df_processed = df_processed[
@@ -206,6 +216,8 @@ def edit_csps_data(
 def edit_pay_data(
     df: pd.DataFrame,
     dept_groups_to_drop: list[str],
+    min_year: int = None,
+    max_year: int = None
 ) -> pd.DataFrame:
     """
     Apply data transformations and cleaning to pay dataframe.
@@ -213,6 +225,8 @@ def edit_pay_data(
     Args:
         df: The raw pay dataframe
         dept_groups_to_drop: List of departmental groups to exclude
+        min_year: Minimum year to include (optional)
+        max_year: Maximum year to include (optional)
 
     Returns:
         pd.DataFrame: Cleaned and processed pay dataframe
@@ -228,6 +242,12 @@ def edit_pay_data(
 
     # Convert 'Median salary' column to numeric
     df_processed["Median salary"] = pd.to_numeric(df_processed["Median salary"])
+
+    # Restrict to specified year range
+    if min_year is not None:
+        df_processed = df_processed[df_processed["Year"] >= min_year]
+    if max_year is not None:
+        df_processed = df_processed[df_processed["Year"] <= max_year]
 
     # Drop departmental groups we're not interested in
     df_processed = df_processed[

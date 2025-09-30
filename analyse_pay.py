@@ -80,6 +80,11 @@ DEPT_ONLY_CONDITIONS = {
 }
 
 # %%
+# CALCULATE VARIABLES
+min_year = min(CSPS_MIN_YEAR, PAY_MIN_YEAR)
+max_year = max(CSPS_MAX_YEAR, PAY_MAX_YEAR)
+
+# %%
 # LOAD DATA
 df_csps_organisation = pd.read_excel(CSPS_PATH + CSPS_FILE_NAME, sheet_name=CSPS_SHEET)
 df_pay = pd.read_excel(PAY_PATH + PAY_FILE_NAME, sheet_name=PAY_SHEET, na_values=PAY_NA_VALUES)
@@ -115,10 +120,14 @@ utils.check_pay_data(
 df_csps_organisation_eei_ts = utils.edit_csps_data(
     df_csps_organisation,
     DEPT_GROUPS_TO_DROP,
-    ORGS_TO_DROP
+    ORGS_TO_DROP,
+    min_year=min_year,
+    max_year=max_year
 )
 
 df_pay_cleaned = utils.edit_pay_data(
     df_pay,
     DEPT_GROUPS_TO_DROP,
+    min_year=min_year,
+    max_year=max_year
 )
