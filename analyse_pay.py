@@ -1,8 +1,9 @@
 # %%
 """
     Purpose
-        Analyse the relationship between pay and benefits CSPS theme scores and pay data.
-            - TODO: Expand
+        Analyse the relationship between pay and benefits CSPS theme scores and pay data. Analyses two things:
+            - Organisation-level EEI and theme scores for departments for 2024
+            - CS median EEI and theme scores over time
     Inputs
         - XLSX: "Organisation working file.xlsx"
             - CSPS organisation data
