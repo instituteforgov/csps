@@ -403,6 +403,59 @@ def draw_1d_pairplot(df: pd.DataFrame, x_vars: list[str], y_var: str, hue: str =
         )
 
 
+def draw_scatter_plot(df: pd.DataFrame, x_var: str, y_var: str, hue: str = None, palette: str = None, best_fit: bool = True, **kwargs) -> sns.axisgrid.FacetGrid:
+    """
+    Create a scatter plot with optional regression line.
+
+    Args:
+        df: DataFrame with data in wide format (measures in individual columns)
+        x_var: Measure to use as x variable
+        y_var: Measure to use as y variable
+        hue: Column name to use for colour coding (optional)
+        palette: Colour palette to use (optional)
+        best_fit: Whether to add a best fit line (optional)
+        **kwargs: Additional keyword arguments to pass to seaborn lmplot
+
+    Returns:
+        seaborn FacetGrid object
+    """
+    # When using hue, create scatter plots first, then add regression line manually
+    if hue is not None:
+        g = sns.lmplot(
+            data=df,
+            x=x_var,
+            y=y_var,
+            hue=hue,
+            palette=palette,
+            scatter_kws={"alpha": 0.7, "s": 50},
+            **kwargs
+        )
+        if best_fit:
+            ax = g.axes[0, 0]
+            sns.regplot(
+                data=df,
+                x=x_var,
+                y=y_var,
+                ax=ax,
+                scatter=False,
+                line_kws={"color": "#333F48", "alpha": 0.5},
+                ci=None
+            )
+        return g
+
+    # Original behaviour for non-hue case
+    else:
+        return sns.lmplot(
+            data=df,
+            x=x_var,
+            y=y_var,
+            scatter_kws={"alpha": 0.7, "s": 50},
+            line_kws={"linewidth": 1.5} if best_fit else {"linewidth": 0},
+            ci=None,
+            **kwargs
+        )
+
+
 def fit_eei_theme_regressions(df_pivot: pd.DataFrame, eei_label: str, ts_labels: list[str], data_description: str) -> None:
     """
     Fit regression models of EEI against each theme score and print results.
