@@ -63,10 +63,13 @@ ORGS_TO_DROP = [
 ]
 
 # NB: 'Organisations' that are dropped across all the organisation-level analysis - mean and median civil service figures - are intentionally not included here
-DEPT_ONLY_CONDITIONS = {
+CSPS_DEPT_ONLY_CONDITIONS = {
     "organisation_type_filter": ["Ministerial department"],
     "exclude_orgs": ["Export Credits Guarantee Department"],
-    "include_orgs": ["HM Revenue and Customs"],
+    "include_orgs": [
+        "Department for Education group (including agencies)",
+        "HM Revenue and Customs",
+    ],
 }
 
 # %%
@@ -82,7 +85,7 @@ utils.check_csps_data(
     CSPS_MEAN_MIN_YEAR,
     DEPT_GROUPS_TO_DROP,
     ORGS_TO_DROP,
-    DEPT_ONLY_CONDITIONS,
+    CSPS_DEPT_ONLY_CONDITIONS,
     CSPS_MEDIAN_ORGANISATION_NAME,
     CSPS_MEAN_ORGANISATION_NAME,
     EEI_LABEL,
@@ -110,9 +113,9 @@ df_csps_eei_ts_organisation2024_pivot = utils.filter_pivot_data(
 df_csps_eei_ts_dept2024_pivot = utils.filter_pivot_data(
     df_csps_eei_ts,
     year_filter=2024,
-    organisation_type_filter=DEPT_ONLY_CONDITIONS["organisation_type_filter"],
-    exclude_orgs=[CSPS_MEDIAN_ORGANISATION_NAME, CSPS_MEAN_ORGANISATION_NAME] + DEPT_ONLY_CONDITIONS["exclude_orgs"],
-    include_orgs=DEPT_ONLY_CONDITIONS["include_orgs"],
+    organisation_type_filter=CSPS_DEPT_ONLY_CONDITIONS["organisation_type_filter"],
+    exclude_orgs=[CSPS_MEDIAN_ORGANISATION_NAME, CSPS_MEAN_ORGANISATION_NAME] + CSPS_DEPT_ONLY_CONDITIONS["exclude_orgs"],
+    include_orgs=CSPS_DEPT_ONLY_CONDITIONS["include_orgs"],
     preserve_columns=["Organisation type"]
 )
 
