@@ -13,11 +13,13 @@
     Notes
         - Analysis is not carried out on CS mean figures, as there are insufficient data points: these are only available from 2019 onwards
         - Scottish and Welsh organisations are dropped, but this only applies to organisation-level analysis and not analysis based on the CS median
-        - Three organisations are dropped to avoid double-counting:
+        - Four organisations are dropped to avoid double-counting:
             - 'Ministry of Justice group (including agencies)': Dropped as 'Ministry of Justice' (i.e. the core department) exists as a separate organisation in the data
+            - 'Ministry of Justice arm's length bodies': Dropped as individual MoJ ALBs exist as separate organisations in the data
             - 'Office for National Statistics' and 'UK Statistics Authority (excluding Office for National Statistics)': Dropped as 'UK Statistics Authority', which includes the ONS, exists as a separate organisation in the data. ONS is a sub-unit rather than a distinct organisation, therefore we want to include it as part of UKSA
         - DfE figures included in this analysis are group figures, unlike other ministerial departments (see Excel working file for further details)
         - The department-only analysis is carried out on ministerial departments plus HMRC and minus Export Credits Guarantee Department, for consistency with other Whitehall Monitor analysis
+        -- "Scotland, Wales and Northern Ireland Offices, and the Office of the Advocate General for Scotland" (with organisation type of "Combination" in our classification) is reported as one entity in CSPS and included in this analysis in that form
 """
 
 import os
@@ -58,6 +60,7 @@ DEPT_GROUPS_TO_DROP = [
 ]
 ORGS_TO_DROP = [
     "Ministry of Justice group (including agencies)",
+    "Ministry of Justice arm's length bodies",
     "Office for National Statistics",
     "UK Statistics Authority (excluding Office for National Statistics)",
 ]
@@ -68,6 +71,7 @@ CSPS_DEPT_ONLY_CONDITIONS = {
     "exclude_orgs": ["Export Credits Guarantee Department"],
     "include_orgs": [
         "Department for Education group (including agencies)",
+        "Scotland, Wales and Northern Ireland Offices, and the Office of the Advocate General for Scotland",
         "HM Revenue and Customs",
     ],
 }
