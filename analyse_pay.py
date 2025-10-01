@@ -1,7 +1,7 @@
 # %%
 """
     Purpose
-        Analyse the relationship between pay and benefits CSPS theme scores and pay data. Analyses two things:
+        Analyse the relationship between pay and benefits CSPS theme scores and pay data. Analyses six things:
             - Organisation-level EEI scores vs median pay, for 2024
             - Organisation-level pay and benefits theme scores vs median pay, for 2024
             - Core department organisation-level EEI scores vs median pay, for 2024
@@ -16,12 +16,25 @@
     Outputs
         None
     Notes
+        -- See "analyse_theme_scores.py" for notes on the CSPS source data and analytical decisions made there: all points apply here too unless otherwise stated
         -- The coverage of the CSPS and Civil Service Stats are different. Differences are that:
-            - Civil Service Stats include the security services
-            - TODO: Expand
-        -- See "analyse_theme_scores.py" for notes on the CSPS source data and analytical decisions made there: all points apply here too
+            - Civil Service Stats include the following as an organisation, while CSPS does not:
+                - 'Security and Intelligence Services': Other public body
+                - 'Central Civil Service Fast Stream': Ministerial dept sub-unit
+                - 'Defence Electronics and Components Agency': Exec agency sub-unit (since 2023)
+                - 'Government Commercial Organisation': Ministerial dept sub-unit
+                - 'Office for Budget Responsibility' : Exec NDPB - unclear why not in CSPS
+                - 'Queen Elizabeth II Centre': Exec agency - unclear why not in CSPS
+                - 'Royal Fleet Auxiliary': Exec agency - unclear why not in CSPS
+                - 'UK Supreme Court' : NMD - unclear why not in CSPS
+            - CSPS includes 'HM Inspectorate of Constabulary and Fire and Rescue Services' (an 'Other public body', per CO's classification), while Civil Service Stats do not
+            -- "Scotland, Wales and Northern Ireland Offices, and the Office of the Advocate General for Scotland" is included as one entity in the CSPS data, while the territorial offices are separate entities in the pay data
         -- Figures ascribed to a department in our pay data are for core departments: we don't hold departmental group data in our version of the pay data
-        -- There will be a slight mismatch in coverage for the DfE: CSPS data will be group figures while pay data will be core department only
+        -- In the organisation-level analysis, coverage differs slightly between this analysis and the CSPS theme score analysis:
+            -- "HM Inspectorate of Constabulary and Fire and Rescue Services" (CSPS data) is dropped from this analysis as it doesn't exist in the pay data,
+            -- "Scotland, Wales and Northern Ireland Offices, and the Office of the Advocate General for Scotland" (CSPS data) and "Office of the Secretary of State for Scotland"/"Office of the Secretary of State for Wales"/"Northern Ireland Office" (pay data) are dropped from this analysis as they can't easily be matched
+            -- "HM Prison and Probation Service (excluding HM Prison Service and National Probation Service/Probation Service)"/"HM Prison Service"/"Probation Service" (CSPS data) and "HM Prison and Probation Service" are dropped from this analysis as they can't easily be matched
+        -- There is also a slight mismatch in coverage for DfE: CSPS data is group figures while pay data is the core department only (departmental group bodies have been excluded from the pay data)
         -- CSPS is conducted in September-October each year, while pay date is as at the 31st March of the respective year
 """
 
@@ -71,6 +84,7 @@ DEPT_GROUPS_TO_DROP = [
 ]
 ORGS_TO_DROP = [
     "Ministry of Justice group (including agencies)",
+    "Ministry of Justice arm's length bodies",
     "Office for National Statistics",
     "UK Statistics Authority (excluding Office for National Statistics)",
 ]
@@ -78,6 +92,34 @@ ORGS_TO_DROP = [
 PAY_SUMMARY_GRADE_NAME = "All employees"
 
 # NB: 'Organisations' that are dropped across all the organisation-level analysis - mean and median civil service figures - are intentionally not included here
+CSPS_ORGANISATION_ONLY_CONDITIONS = {
+    "exclude_orgs": [
+        "Scotland, Wales and Northern Ireland Offices, and the Office of the Advocate General for Scotland",
+        "HM Prison and Probation Service (excluding HM Prison Service and National Probation Service/Probation Service)",
+        "HM Prison Service",
+        "Probation Service",
+        "HM Inspectorate of Constabulary and Fire and Rescue Services",
+    ],
+}
+PAY_ORGANISATION_ONLY_CONDITIONS = {
+    "exclude_orgs": [
+        "Office of the Secretary of State for Scotland",
+        "Office of the Secretary of State for Wales",
+        "Northern Ireland Office",
+        "HM Prison and Probation Service",
+        "Security and Intelligence Services",
+        "Central Civil Service Fast Stream",
+        "Defence Electronics and Components Agency",
+        "Government Commercial Organisation",
+        "Office for Budget Responsibility",
+        "Queen Elizabeth II Centre",
+        "Royal Fleet Auxiliary",
+        "UK Supreme Court",
+        "Education and Skills Funding Agency",
+        "Standards and Testing Agency",
+        "Teaching Regulation Agency",
+    ],
+}
 CSPS_DEPT_ONLY_CONDITIONS = {
     "organisation_type_filter": ["Ministerial department"],
     "exclude_orgs": ["Export Credits Guarantee Department"],
@@ -90,9 +132,9 @@ PAY_DEPT_ONLY_CONDITIONS = {
     "organisation_type_filter": ["Ministerial department"],
     "exclude_orgs": [
         "Export Credits Guarantee Department",
+        "Office of the Secretary of State for Scotland",
         "Office of the Secretary of State for Wales",
         "Northern Ireland Office",
-        "Office of the Secretary of State for Scotland",
     ],
     "include_orgs": [
         "HM Revenue and Customs",
@@ -106,6 +148,7 @@ CSPS_ORGANISATION_RENAMINGS = {
 PAY_ORGANISATION_RENAMINGS = {
     "Department for Levelling Up, Housing and Communities": "Ministry of Housing, Communities & Local Government",
     "Department for Education": "Department for Education/Department for Education group",
+    "Medicines and Healthcare Products Regulatory Agency": "Medicines and Healthcare products Regulatory Agency",
 }
 
 # %%
@@ -163,11 +206,11 @@ df_pay_cleaned = utils.edit_pay_data(
 )
 
 # %%
-# Create cuts of the CSPS data we'll need (organisation-level x 2024, department-level x 2024, CS median x all years) and convert to wide format
+# Create cuts of the CSPS data we"ll need (organisation-level x 2024, department-level x 2024, CS median x all years) and convert to wide format
 df_csps_eei_ts_organisation2024_pivot = utils.filter_pivot_data(
     df_csps_eei_ts,
     year_filter=2024,
-    exclude_orgs=[CSPS_MEDIAN_ORGANISATION_NAME, CSPS_MEAN_ORGANISATION_NAME],
+    exclude_orgs=[CSPS_MEDIAN_ORGANISATION_NAME, CSPS_MEAN_ORGANISATION_NAME] + CSPS_ORGANISATION_ONLY_CONDITIONS["exclude_orgs"],
     preserve_columns=["Organisation type"]
 )
 
@@ -189,7 +232,8 @@ df_csps_eei_ts_median_pivot = utils.filter_pivot_data(
 # Create cuts of the pay data we'll need (organisation-level x 2024, department-level x 2024, CS median x all years)
 df_pay_organisation2024 = df_pay_cleaned[
     (df_pay_cleaned["Year"] == 2024) &
-    (df_pay_cleaned["Organisation"] != PAY_SUMMARY_ORGANISATION_NAME)
+    (df_pay_cleaned["Organisation"] != PAY_SUMMARY_ORGANISATION_NAME) &
+    (~df_pay_cleaned["Organisation"].isin(PAY_ORGANISATION_ONLY_CONDITIONS["exclude_orgs"]))
 ].copy()
 
 df_pay_dept2024 = df_pay_cleaned[
@@ -215,13 +259,22 @@ for df in [df_pay_organisation2024, df_pay_dept2024]:
 
 # %%
 # Check all organisations are matched between pay and CSPS data
+csps_organisations_2024 = set(df_csps_eei_ts_organisation2024_pivot["Organisation"].unique())
+pay_organisations_2024 = set(df_pay_organisation2024["Organisation"].unique())
+csps_organisations_2024_missing = csps_organisations_2024 - pay_organisations_2024
+pay_organisations_2024_missing = pay_organisations_2024 - csps_organisations_2024
+
+assert len(csps_organisations_2024_missing) == 0, f"CSPS organisations missing from pay data: {csps_organisations_2024_missing}"
+assert len(pay_organisations_2024_missing) == 0, f"Pay organisations missing from CSPS data: {pay_organisations_2024_missing}"
+
+# %%
 csps_depts_2024 = set(df_csps_eei_ts_dept2024_pivot["Organisation"].unique())
 pay_depts_2024 = set(df_pay_dept2024["Organisation"].unique())
 csps_depts_2024_missing = csps_depts_2024 - pay_depts_2024
 pay_depts_2024_missing = pay_depts_2024 - csps_depts_2024
 
-assert len(csps_depts_2024_missing) == 0, f"CSPS department organisations missing from pay data: {csps_depts_2024_missing}"
-assert len(pay_depts_2024_missing) == 0, f"Pay department organisations missing from CSPS data: {pay_depts_2024_missing}"
+assert len(csps_depts_2024_missing) == 0, f"CSPS departments missing from pay data: {csps_depts_2024_missing}"
+assert len(pay_depts_2024_missing) == 0, f"Pay departments missing from CSPS data: {pay_depts_2024_missing}"
 
 # %%
 # Join CSPS and pay data, keeping only one set of organisation characteristics
@@ -341,5 +394,20 @@ utils.draw_scatter_plot(
 utils.fit_regressions(
     df_pay_csps_median, x_vars=["Median salary"], y_var="Pay and benefits", data_description="Civil service median pay and benefits score vs median pay, over time"
 )
+
+# %%
+# Print significance legend and R² thresholds
+print("Significance levels:")
+print("*** p < 0.001")
+print("**  p < 0.01")
+print("*   p < 0.05")
+print("    p ≥ 0.05 (not significant)")
+print()
+
+print("R² thresholds:")
+print("R² = 0 = none")
+print("0 < R² <= 0.1 = weak")
+print("0.1 < R² <= 0.35 = moderate")
+print("R² > 0.35 = strong")
 
 # %%
