@@ -3,7 +3,7 @@
     Purpose
         Analyse CSPS theme scores by organisation. Analyses three things:
             - Organisation-level EEI and theme scores for 2024
-            - Organisation-level EEI and theme scores for departments for 2024
+            - Core department organisation-level EEI and theme scores for 2024
             - CS median EEI and theme scores over time
     Inputs
         - XLSX: "Organisation working file.xlsx"
@@ -71,12 +71,12 @@ DEPT_ONLY_CONDITIONS = {
 
 # %%
 # LOAD DATA
-df_csps_organisation = pd.read_excel(CSPS_PATH + CSPS_FILE_NAME, sheet_name=CSPS_SHEET)
+df_csps = pd.read_excel(CSPS_PATH + CSPS_FILE_NAME, sheet_name=CSPS_SHEET)
 
 # %%
 # RUN CHECKS ON DATA
 utils.check_csps_data(
-    df_csps_organisation,
+    df_csps,
     CSPS_MIN_YEAR,
     CSPS_MAX_YEAR,
     CSPS_MEAN_MIN_YEAR,
@@ -91,32 +91,24 @@ utils.check_csps_data(
 
 # %%
 # EDIT DATA
-df_csps_organisation_eei_ts = utils.edit_csps_data(
-    df_csps_organisation,
+# Filter data
+df_csps_eei_ts = utils.edit_csps_data(
+    df_csps,
     DEPT_GROUPS_TO_DROP,
     ORGS_TO_DROP
 )
 
 # %%
-# ANALYSE DATA
-# Organisation-level EEI and theme scores for 2024
-df_csps_organisation_eei_ts_2024_noavgs_pivot = utils.filter_pivot_data(
-    df_csps_organisation_eei_ts,
+# Create cuts of the CSPS data we'll need (organisation-level x 2024, department-level x 2024, CS median x all years) and convert to wide format
+df_csps_eei_ts_organisation2024_pivot = utils.filter_pivot_data(
+    df_csps_eei_ts,
     year_filter=2024,
     exclude_orgs=[CSPS_MEDIAN_ORGANISATION_NAME, CSPS_MEAN_ORGANISATION_NAME],
     preserve_columns=["Organisation type"]
 )
 
-utils.draw_1d_pairplot(df_csps_organisation_eei_ts_2024_noavgs_pivot, x_vars=TS_LABELS, y_var=EEI_LABEL, hue="Organisation type")
-
-utils.fit_regressions(
-    df_csps_organisation_eei_ts_2024_noavgs_pivot, x_vars=TS_LABELS, y_var=EEI_LABEL, data_description="2024 organisation-level data"
-)
-
-# %%
-# Organisation-level EEI and theme scores for departments for 2024
-df_csps_organisation_eei_ts_2024_depts_pivot = utils.filter_pivot_data(
-    df_csps_organisation_eei_ts,
+df_csps_eei_ts_dept2024_pivot = utils.filter_pivot_data(
+    df_csps_eei_ts,
     year_filter=2024,
     organisation_type_filter=DEPT_ONLY_CONDITIONS["organisation_type_filter"],
     exclude_orgs=[CSPS_MEDIAN_ORGANISATION_NAME, CSPS_MEAN_ORGANISATION_NAME] + DEPT_ONLY_CONDITIONS["exclude_orgs"],
@@ -124,23 +116,34 @@ df_csps_organisation_eei_ts_2024_depts_pivot = utils.filter_pivot_data(
     preserve_columns=["Organisation type"]
 )
 
-utils.draw_1d_pairplot(df_csps_organisation_eei_ts_2024_depts_pivot, x_vars=TS_LABELS, y_var=EEI_LABEL, hue="Organisation type")
+df_csps_eei_ts_median_pivot = utils.filter_pivot_data(
+    df_csps_eei_ts,
+    organisation_filter=CSPS_MEDIAN_ORGANISATION_NAME,
+)
+
+# %%
+# ANALYSE DATA
+# Organisation-level EEI and theme scores for 2024
+utils.draw_1d_pairplot(df_csps_eei_ts_organisation2024_pivot, x_vars=TS_LABELS, y_var=EEI_LABEL, hue="Organisation type")
 
 utils.fit_regressions(
-    df_csps_organisation_eei_ts_2024_depts_pivot, x_vars=TS_LABELS, y_var=EEI_LABEL, data_description="2024 organisation-level data, depts only"
+    df_csps_eei_ts_organisation2024_pivot, x_vars=TS_LABELS, y_var=EEI_LABEL, data_description="2024 organisation-level data"
+)
+
+# %%
+# Organisation-level EEI and theme scores for departments for 2024
+utils.draw_1d_pairplot(df_csps_eei_ts_dept2024_pivot, x_vars=TS_LABELS, y_var=EEI_LABEL, hue="Organisation type")
+
+utils.fit_regressions(
+    df_csps_eei_ts_dept2024_pivot, x_vars=TS_LABELS, y_var=EEI_LABEL, data_description="2024 organisation-level data, depts only"
 )
 
 # %%
 # CS median EEI and theme scores over time
-df_csps_organisation_eei_ts_median_pivot = utils.filter_pivot_data(
-    df_csps_organisation_eei_ts,
-    organisation_filter=CSPS_MEDIAN_ORGANISATION_NAME,
-)
-
-utils.draw_1d_pairplot(df_csps_organisation_eei_ts_median_pivot, x_vars=TS_LABELS, y_var=EEI_LABEL, hue="Year", palette="rocket_r")
+utils.draw_1d_pairplot(df_csps_eei_ts_median_pivot, x_vars=TS_LABELS, y_var=EEI_LABEL, hue="Year", palette="rocket_r")
 
 utils.fit_regressions(
-    df_csps_organisation_eei_ts_median_pivot, x_vars=TS_LABELS, y_var=EEI_LABEL, data_description="Civil service median data over time"
+    df_csps_eei_ts_median_pivot, x_vars=TS_LABELS, y_var=EEI_LABEL, data_description="Civil service median data over time"
 )
 
 # %%
