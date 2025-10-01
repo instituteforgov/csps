@@ -350,7 +350,7 @@ def filter_pivot_data(
     return df_pivot
 
 
-def draw_1d_pairplot(df: pd.DataFrame, x_vars: list[str], y_var: str, hue: str = None, palette: str = None) -> sns.axisgrid.PairGrid:
+def draw_1d_pairplot(df: pd.DataFrame, x_vars: list[str], y_var: str, hue: str = None, palette: str = None, best_fit: bool = True, **kwargs) -> sns.axisgrid.PairGrid:
     """
     Create n x 1 array of scatter plots, showing EEI score versus each theme score with lines of best fit.
 
@@ -359,6 +359,9 @@ def draw_1d_pairplot(df: pd.DataFrame, x_vars: list[str], y_var: str, hue: str =
         x_vars: Measures to use as x variables
         y_var: Measure to use as y variable
         hue: Column name to use for colour coding (optional)
+        palette: Colour palette to use (optional)
+        best_fit: Whether to add a best fit line (optional)
+        **kwargs: Additional keyword arguments to pass to seaborn pairplot
 
     Returns:
         seaborn PairGrid object
@@ -373,21 +376,22 @@ def draw_1d_pairplot(df: pd.DataFrame, x_vars: list[str], y_var: str, hue: str =
             y_vars=[y_var],
             hue=hue,
             palette=palette,
-            plot_kws={"alpha": 0.7, "s": 50}
+            plot_kws={"alpha": 0.7, "s": 50},
+            **kwargs
         )
 
-        # Add regression lines manually
-        for i, theme in enumerate(x_vars):
-            ax = g.axes[0, i]
-            sns.regplot(
-                data=df,
-                x=theme,
-                y=y_var,
-                ax=ax,
-                scatter=False,
-                line_kws={"color": "#333F48", "alpha": 0.5},
-                ci=None
-            )
+        if best_fit:
+            for i, theme in enumerate(x_vars):
+                ax = g.axes[0, i]
+                sns.regplot(
+                    data=df,
+                    x=theme,
+                    y=y_var,
+                    ax=ax,
+                    scatter=False,
+                    line_kws={"color": "#333F48", "alpha": 0.5},
+                    ci=None
+                )
 
         return g
 
@@ -396,7 +400,11 @@ def draw_1d_pairplot(df: pd.DataFrame, x_vars: list[str], y_var: str, hue: str =
         return sns.pairplot(
             df,
             kind="reg",
-            plot_kws={"ci": None, "scatter_kws": {"alpha": 0.5}, "line_kws": {"linewidth": 1.5}},
+            plot_kws={
+                "ci": None, "scatter_kws": {"alpha": 0.5}, "line_kws": {"linewidth": 1.5}
+            } if best_fit else {
+                "ci": None, "scatter_kws": {"alpha": 0.5}, "line_kws": {"linewidth": 0}
+            },
             diag_kind=None,
             x_vars=x_vars,
             y_vars=[y_var],
