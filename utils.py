@@ -352,7 +352,7 @@ def filter_pivot_data(
 
 def draw_1d_pairplot(df: pd.DataFrame, x_vars: list[str], y_var: str, hue: str = None, palette: str = None, best_fit: bool = True, **kwargs) -> sns.axisgrid.PairGrid:
     """
-    Create n x 1 array of scatter plots, showing EEI score versus each theme score with lines of best fit.
+    Create n x 1 array of scatter plots, showing y_var versus each x_vars with lines of best fit.
 
     Args:
         df: DataFrame with data in wide format (measures in individual columns)
