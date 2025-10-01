@@ -2,8 +2,10 @@
 """
     Purpose
         Analyse the relationship between pay and benefits CSPS theme scores and pay data. Analyses two things:
-            - Organisation-level EEI and theme scores for departments for 2024
-            - CS median EEI and theme scores over time
+            - Organisation-level EEI scores vs median pay, for 2024
+            - Organisation-level pay and benefits theme scores vs median pay, for 2024
+            - CS median EEI scores vs median pay, over time
+            - CS median pay and benefits theme scores vs median pay, over time
     Inputs
         - XLSX: "Organisation working file.xlsx"
             - CSPS organisation data
@@ -132,3 +134,52 @@ df_pay_cleaned = utils.edit_pay_data(
     min_year=min_year,
     max_year=max_year
 )
+# %%
+# ANALYSE DATA
+# CS median EEI scores vs median pay, over time
+df_csps_organisation_eei_ts_median_pivot = utils.filter_pivot_data(
+    df_csps_organisation_eei_ts,
+    organisation_filter=CSPS_MEDIAN_ORGANISATION_NAME,
+)
+
+df_pay_summary = df_pay_cleaned[
+    df_pay_cleaned["Organisation"] == PAY_SUMMARY_ORGANISATION_NAME
+][["Year", "Median salary"]].copy()
+
+df_csps_pay = df_pay_summary.merge(
+    df_csps_organisation_eei_ts_median_pivot,
+    on="Year",
+    how="inner"
+)
+
+utils.draw_scatter_plot(
+    df=df_csps_pay,
+    x_var="Median salary",
+    y_var=EEI_LABEL,
+    height=3,
+    hue="Year",
+    palette="rocket_r",
+    best_fit=True,
+)
+
+utils.fit_regressions(
+    df_csps_pay, x_vars=["Median salary"], y_var=EEI_LABEL, data_description="Civil service median EEI score vs median pay, over time"
+)
+
+# %%
+# CS median pay and benefits theme scores vs median pay, over time
+utils.draw_scatter_plot(
+    df=df_csps_pay,
+    x_var="Median salary",
+    y_var="Pay and benefits",
+    height=3,
+    hue="Year",
+    palette="rocket_r",
+    best_fit=True,
+)
+
+utils.fit_regressions(
+    df_csps_pay, x_vars=["Median salary"], y_var="Pay and benefits", data_description="Civil service median pay and benefits score vs median pay, over time"
+)
+
+# %%
