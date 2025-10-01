@@ -207,6 +207,11 @@ df_pay_cleaned = utils.edit_pay_data(
 
 # %%
 # Create cuts of the CSPS data we"ll need (organisation-level x 2024, department-level x 2024, CS median x all years) and convert to wide format
+df_csps_eei_ts_median_pivot = utils.filter_pivot_data(
+    df_csps_eei_ts,
+    organisation_filter=CSPS_MEDIAN_ORGANISATION_NAME,
+)
+
 df_csps_eei_ts_organisation2024_pivot = utils.filter_pivot_data(
     df_csps_eei_ts,
     year_filter=2024,
@@ -223,13 +228,12 @@ df_csps_eei_ts_dept2024_pivot = utils.filter_pivot_data(
     preserve_columns=["Organisation type"]
 )
 
-df_csps_eei_ts_median_pivot = utils.filter_pivot_data(
-    df_csps_eei_ts,
-    organisation_filter=CSPS_MEDIAN_ORGANISATION_NAME,
-)
-
 # %%
 # Create cuts of the pay data we'll need (organisation-level x 2024, department-level x 2024, CS median x all years)
+df_pay_median = df_pay_cleaned[
+    df_pay_cleaned["Organisation"] == PAY_SUMMARY_ORGANISATION_NAME
+][["Year", "Median salary"]].copy()
+
 df_pay_organisation2024 = df_pay_cleaned[
     (df_pay_cleaned["Year"] == 2024) &
     (df_pay_cleaned["Organisation"] != PAY_SUMMARY_ORGANISATION_NAME) &
@@ -245,10 +249,6 @@ df_pay_dept2024 = df_pay_cleaned[
     ) &
     (~df_pay_cleaned["Organisation"].isin(PAY_DEPT_ONLY_CONDITIONS["exclude_orgs"]))
 ].copy()
-
-df_pay_median = df_pay_cleaned[
-    df_pay_cleaned["Organisation"] == PAY_SUMMARY_ORGANISATION_NAME
-][["Year", "Median salary"]].copy()
 
 # %%
 # Rename organisations to facilitate merging
@@ -277,7 +277,12 @@ assert len(csps_depts_2024_missing) == 0, f"CSPS departments missing from pay da
 assert len(pay_depts_2024_missing) == 0, f"Pay departments missing from CSPS data: {pay_depts_2024_missing}"
 
 # %%
-# Join CSPS and pay data, keeping only one set of organisation characteristics
+# Join CSPS and pay data, keeping only one set of organisation characteristics in organisation-level analysis
+df_pay_csps_median = df_pay_median[["Year", "Median salary"]].merge(
+    df_csps_eei_ts_median_pivot,
+    on="Year",
+    how="inner"
+)
 df_pay_csps_organisation = df_pay_organisation2024[["Organisation", "Median salary"]].merge(
     df_csps_eei_ts_organisation2024_pivot,
     left_on="Organisation",
@@ -290,14 +295,43 @@ df_pay_csps_dept = df_pay_dept2024[["Organisation", "Median salary"]].merge(
     right_on="Organisation",
     how="inner"
 )
-df_pay_csps_median = df_pay_median[["Year", "Median salary"]].merge(
-    df_csps_eei_ts_median_pivot,
-    on="Year",
-    how="inner"
-)
 
 # %%
 # ANALYSE DATA
+# CS median EEI scores vs median pay, over time
+utils.draw_scatter_plot(
+    df=df_pay_csps_median,
+    x_var="Median salary",
+    y_var=EEI_LABEL,
+    height=3,
+    hue="Year",
+    palette="rocket_r",
+    best_fit=True,
+    ci=None
+)
+
+utils.fit_regressions(
+    df_pay_csps_median, x_vars=["Median salary"], y_var=EEI_LABEL, data_description="Civil service median EEI score vs median pay, over time"
+)
+
+# %%
+# CS median pay and benefits theme scores vs median pay, over time
+utils.draw_scatter_plot(
+    df=df_pay_csps_median,
+    x_var="Median salary",
+    y_var="Pay and benefits",
+    height=3,
+    hue="Year",
+    palette="rocket_r",
+    best_fit=True,
+    ci=None
+)
+
+utils.fit_regressions(
+    df_pay_csps_median, x_vars=["Median salary"], y_var="Pay and benefits", data_description="Civil service median pay and benefits score vs median pay, over time"
+)
+
+# %%
 # Organisation-level EEI scores vs median pay, for 2024
 utils.draw_scatter_plot(
     df=df_pay_csps_organisation,
@@ -359,40 +393,6 @@ utils.draw_scatter_plot(
 
 utils.fit_regressions(
     df_pay_csps_dept, x_vars=["Median salary"], y_var="Pay and benefits", data_description="2024 organisation-level data, depts only"
-)
-
-# %%
-# CS median EEI scores vs median pay, over time
-utils.draw_scatter_plot(
-    df=df_pay_csps_median,
-    x_var="Median salary",
-    y_var=EEI_LABEL,
-    height=3,
-    hue="Year",
-    palette="rocket_r",
-    best_fit=True,
-    ci=None
-)
-
-utils.fit_regressions(
-    df_pay_csps_median, x_vars=["Median salary"], y_var=EEI_LABEL, data_description="Civil service median EEI score vs median pay, over time"
-)
-
-# %%
-# CS median pay and benefits theme scores vs median pay, over time
-utils.draw_scatter_plot(
-    df=df_pay_csps_median,
-    x_var="Median salary",
-    y_var="Pay and benefits",
-    height=3,
-    hue="Year",
-    palette="rocket_r",
-    best_fit=True,
-    ci=None
-)
-
-utils.fit_regressions(
-    df_pay_csps_median, x_vars=["Median salary"], y_var="Pay and benefits", data_description="Civil service median pay and benefits score vs median pay, over time"
 )
 
 # %%
