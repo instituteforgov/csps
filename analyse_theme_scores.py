@@ -109,8 +109,8 @@ df_csps_organisation_eei_ts_2024_noavgs_pivot = utils.filter_pivot_data(
 
 utils.draw_1d_pairplot(df_csps_organisation_eei_ts_2024_noavgs_pivot, x_vars=TS_LABELS, y_var=EEI_LABEL, hue="Organisation type")
 
-utils.fit_eei_theme_regressions(
-    df_csps_organisation_eei_ts_2024_noavgs_pivot, EEI_LABEL, TS_LABELS, "2024 organisation-level data"
+utils.fit_regressions(
+    df_csps_organisation_eei_ts_2024_noavgs_pivot, x_vars=TS_LABELS, y_var=EEI_LABEL, data_description="2024 organisation-level data"
 )
 
 # %%
@@ -126,8 +126,8 @@ df_csps_organisation_eei_ts_2024_depts_pivot = utils.filter_pivot_data(
 
 utils.draw_1d_pairplot(df_csps_organisation_eei_ts_2024_depts_pivot, x_vars=TS_LABELS, y_var=EEI_LABEL, hue="Organisation type")
 
-utils.fit_eei_theme_regressions(
-    df_csps_organisation_eei_ts_2024_depts_pivot, EEI_LABEL, TS_LABELS, "2024 organisation-level data, depts only"
+utils.fit_regressions(
+    df_csps_organisation_eei_ts_2024_depts_pivot, x_vars=TS_LABELS, y_var=EEI_LABEL, data_description="2024 organisation-level data, depts only"
 )
 
 # %%
@@ -139,8 +139,8 @@ df_csps_organisation_eei_ts_median_pivot = utils.filter_pivot_data(
 
 utils.draw_1d_pairplot(df_csps_organisation_eei_ts_median_pivot, x_vars=TS_LABELS, y_var=EEI_LABEL, hue="Year", palette="rocket_r")
 
-utils.fit_eei_theme_regressions(
-    df_csps_organisation_eei_ts_median_pivot, EEI_LABEL, TS_LABELS, "Civil service median data over time"
+utils.fit_regressions(
+    df_csps_organisation_eei_ts_median_pivot, x_vars=TS_LABELS, y_var=EEI_LABEL, data_description="Civil service median data over time"
 )
 
 # %%

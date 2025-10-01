@@ -413,7 +413,7 @@ def draw_1d_pairplot(df: pd.DataFrame, x_vars: list[str], y_var: str, hue: str =
 
 def draw_scatter_plot(df: pd.DataFrame, x_var: str, y_var: str, hue: str = None, palette: str = None, best_fit: bool = True, **kwargs) -> sns.axisgrid.FacetGrid:
     """
-    Create a scatter plot with optional regression line.
+    Create a scatter plot with optional lines of best fit.
 
     Args:
         df: DataFrame with data in wide format (measures in individual columns)
@@ -464,17 +464,17 @@ def draw_scatter_plot(df: pd.DataFrame, x_var: str, y_var: str, hue: str = None,
         )
 
 
-def fit_eei_theme_regressions(df_pivot: pd.DataFrame, eei_label: str, ts_labels: list[str], data_description: str) -> None:
+def fit_regressions(df: pd.DataFrame, x_vars: list[str], y_var: str, data_description: str) -> None:
     """
-    Fit regression models of EEI against each theme score and print results.
+    Fit regression models of y_var against each x_var and print results.
 
     Args:
-        df_pivot: DataFrame with pivoted data
-        eei_label: Employee Engagement Index column name
-        ts_labels: List of theme score column names
+        df: DataFrame with data in wide format (measures in individual columns)
+        x_vars: Measures to use as x variables
+        y_var: Measure to use as y variable
         data_description: String describing the data for output labels
     """
-    df_analysis = df_pivot.copy()
+    df_analysis = df.copy()
 
     def get_significance_stars(p_value: float) -> str:
         """Return asterisks based on p-value significance levels."""
@@ -487,13 +487,13 @@ def fit_eei_theme_regressions(df_pivot: pd.DataFrame, eei_label: str, ts_labels:
         else:
             return ""
 
-    for theme in ts_labels:
+    for x_var in x_vars:
         if len(df_analysis) < 2:
-            print(f"Insufficient data for regression: EEI vs {theme} ({data_description})")
+            print(f"Insufficient data for regression: {y_var} vs {x_var} ({data_description})")
             continue
 
-        X = df_analysis[theme]
-        y = df_analysis[eei_label]
+        X = df_analysis[x_var]
+        y = df_analysis[y_var]
 
         # Remove any NaN values
         mask = ~(X.isna() | y.isna())
@@ -501,7 +501,7 @@ def fit_eei_theme_regressions(df_pivot: pd.DataFrame, eei_label: str, ts_labels:
         y = y[mask]
 
         if len(X) < 2:
-            print(f"Insufficient valid data for regression: EEI vs {theme} ({data_description})")
+            print(f"Insufficient valid data for regression: {y_var} vs {x_var} ({data_description})")
             continue
 
         # Add constant term for intercept
@@ -519,7 +519,7 @@ def fit_eei_theme_regressions(df_pivot: pd.DataFrame, eei_label: str, ts_labels:
         # Get significance stars
         stars = get_significance_stars(p_value)
 
-        print(f"Regression results for EEI vs {theme} ({data_description}):")
+        print(f"Regression results for {y_var} vs {x_var} ({data_description}):")
         print(f"  R²: {r_squared:.4f}")
         print(f"  p-value: {p_value:.4f}{stars}")
         print(f"  Equation: y = {intercept:.4f} + {slope:.4f}x")
