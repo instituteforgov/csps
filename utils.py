@@ -381,11 +381,11 @@ def draw_1d_pairplot(df: pd.DataFrame, x_vars: list[str], y_var: str, hue: str =
         )
 
         if best_fit:
-            for i, theme in enumerate(x_vars):
+            for i, x_var in enumerate(x_vars):
                 ax = g.axes[0, i]
                 sns.regplot(
                     data=df,
-                    x=theme,
+                    x=x_var,
                     y=y_var,
                     ax=ax,
                     scatter=False,
