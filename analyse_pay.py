@@ -4,6 +4,8 @@
         Analyse the relationship between pay and benefits CSPS theme scores and pay data. Analyses two things:
             - Organisation-level EEI scores vs median pay, for 2024
             - Organisation-level pay and benefits theme scores vs median pay, for 2024
+            - Core department organisation-level EEI scores vs median pay, for 2024
+            - Core department organisation-level pay and benefits theme scores vs median pay, for 2024
             - CS median EEI scores vs median pay, over time
             - CS median pay and benefits theme scores vs median pay, over time
     Inputs
@@ -76,10 +78,34 @@ ORGS_TO_DROP = [
 PAY_SUMMARY_GRADE_NAME = "All employees"
 
 # NB: 'Organisations' that are dropped across all the organisation-level analysis - mean and median civil service figures - are intentionally not included here
-DEPT_ONLY_CONDITIONS = {
+CSPS_DEPT_ONLY_CONDITIONS = {
     "organisation_type_filter": ["Ministerial department"],
     "exclude_orgs": ["Export Credits Guarantee Department"],
-    "include_orgs": ["HM Revenue and Customs"],
+    "include_orgs": [
+        "Department for Education group (including agencies)",
+        "HM Revenue and Customs",
+    ],
+}
+PAY_DEPT_ONLY_CONDITIONS = {
+    "organisation_type_filter": ["Ministerial department"],
+    "exclude_orgs": [
+        "Export Credits Guarantee Department",
+        "Office of the Secretary of State for Wales",
+        "Northern Ireland Office",
+        "Office of the Secretary of State for Scotland",
+    ],
+    "include_orgs": [
+        "HM Revenue and Customs",
+    ]
+}
+
+CSPS_ORGANISATION_RENAMINGS = {
+    "Ministry of Housing, Communities & Local Government - 2024 iteration": "Ministry of Housing, Communities & Local Government",
+    "Department for Education group (including agencies)": "Department for Education/Department for Education group",
+}
+PAY_ORGANISATION_RENAMINGS = {
+    "Department for Levelling Up, Housing and Communities": "Ministry of Housing, Communities & Local Government",
+    "Department for Education": "Department for Education/Department for Education group",
 }
 
 # %%
@@ -89,19 +115,19 @@ max_year = max(CSPS_MAX_YEAR, PAY_MAX_YEAR)
 
 # %%
 # LOAD DATA
-df_csps_organisation = pd.read_excel(CSPS_PATH + CSPS_FILE_NAME, sheet_name=CSPS_SHEET)
+df_csps = pd.read_excel(CSPS_PATH + CSPS_FILE_NAME, sheet_name=CSPS_SHEET)
 df_pay = pd.read_excel(PAY_PATH + PAY_FILE_NAME, sheet_name=PAY_SHEET, na_values=PAY_NA_VALUES)
 
 # %%
 # RUN CHECKS ON DATA
 utils.check_csps_data(
-    df_csps_organisation,
+    df_csps,
     CSPS_MIN_YEAR,
     CSPS_MAX_YEAR,
     CSPS_MEAN_MIN_YEAR,
     DEPT_GROUPS_TO_DROP,
     ORGS_TO_DROP,
-    DEPT_ONLY_CONDITIONS,
+    CSPS_DEPT_ONLY_CONDITIONS,
     CSPS_MEDIAN_ORGANISATION_NAME,
     CSPS_MEAN_ORGANISATION_NAME,
     EEI_LABEL,
@@ -113,15 +139,16 @@ utils.check_pay_data(
     PAY_MIN_YEAR,
     PAY_MAX_YEAR,
     DEPT_GROUPS_TO_DROP,
-    DEPT_ONLY_CONDITIONS,
+    PAY_DEPT_ONLY_CONDITIONS,
     PAY_SUMMARY_ORGANISATION_NAME,
     PAY_SUMMARY_GRADE_NAME,
 )
 
 # %%
 # EDIT DATA
-df_csps_organisation_eei_ts = utils.edit_csps_data(
-    df_csps_organisation,
+# Filter data
+df_csps_eei_ts = utils.edit_csps_data(
+    df_csps,
     DEPT_GROUPS_TO_DROP,
     ORGS_TO_DROP,
     min_year=min_year,
@@ -134,52 +161,185 @@ df_pay_cleaned = utils.edit_pay_data(
     min_year=min_year,
     max_year=max_year
 )
+
 # %%
-# ANALYSE DATA
-# CS median EEI scores vs median pay, over time
-df_csps_organisation_eei_ts_median_pivot = utils.filter_pivot_data(
-    df_csps_organisation_eei_ts,
+# Create cuts of the CSPS data we'll need (organisation-level x 2024, department-level x 2024, CS median x all years) and convert to wide format
+df_csps_eei_ts_organisation2024_pivot = utils.filter_pivot_data(
+    df_csps_eei_ts,
+    year_filter=2024,
+    exclude_orgs=[CSPS_MEDIAN_ORGANISATION_NAME, CSPS_MEAN_ORGANISATION_NAME],
+    preserve_columns=["Organisation type"]
+)
+
+df_csps_eei_ts_dept2024_pivot = utils.filter_pivot_data(
+    df_csps_eei_ts,
+    year_filter=2024,
+    organisation_type_filter=CSPS_DEPT_ONLY_CONDITIONS["organisation_type_filter"],
+    exclude_orgs=[CSPS_MEDIAN_ORGANISATION_NAME, CSPS_MEAN_ORGANISATION_NAME] + CSPS_DEPT_ONLY_CONDITIONS["exclude_orgs"],
+    include_orgs=CSPS_DEPT_ONLY_CONDITIONS["include_orgs"],
+    preserve_columns=["Organisation type"]
+)
+
+df_csps_eei_ts_median_pivot = utils.filter_pivot_data(
+    df_csps_eei_ts,
     organisation_filter=CSPS_MEDIAN_ORGANISATION_NAME,
 )
 
-df_pay_summary = df_pay_cleaned[
+# %%
+# Create cuts of the pay data we'll need (organisation-level x 2024, department-level x 2024, CS median x all years)
+df_pay_organisation2024 = df_pay_cleaned[
+    (df_pay_cleaned["Year"] == 2024) &
+    (df_pay_cleaned["Organisation"] != PAY_SUMMARY_ORGANISATION_NAME)
+].copy()
+
+df_pay_dept2024 = df_pay_cleaned[
+    (df_pay_cleaned["Year"] == 2024) &
+    (df_pay_cleaned["Organisation"] != PAY_SUMMARY_ORGANISATION_NAME) &
+    (
+        (df_pay_cleaned["Organisation type"].isin(PAY_DEPT_ONLY_CONDITIONS["organisation_type_filter"])) |
+        (df_pay_cleaned["Organisation"].isin(PAY_DEPT_ONLY_CONDITIONS["include_orgs"]))
+    ) &
+    (~df_pay_cleaned["Organisation"].isin(PAY_DEPT_ONLY_CONDITIONS["exclude_orgs"]))
+].copy()
+
+df_pay_median = df_pay_cleaned[
     df_pay_cleaned["Organisation"] == PAY_SUMMARY_ORGANISATION_NAME
 ][["Year", "Median salary"]].copy()
 
-df_csps_pay = df_pay_summary.merge(
-    df_csps_organisation_eei_ts_median_pivot,
+# %%
+# Rename organisations to facilitate merging
+for df in [df_csps_eei_ts_organisation2024_pivot, df_csps_eei_ts_dept2024_pivot]:
+    df["Organisation"] = df["Organisation"].replace(CSPS_ORGANISATION_RENAMINGS)
+for df in [df_pay_organisation2024, df_pay_dept2024]:
+    df["Organisation"] = df["Organisation"].replace(PAY_ORGANISATION_RENAMINGS)
+
+# %%
+# Check all organisations are matched between pay and CSPS data
+csps_depts_2024 = set(df_csps_eei_ts_dept2024_pivot["Organisation"].unique())
+pay_depts_2024 = set(df_pay_dept2024["Organisation"].unique())
+csps_depts_2024_missing = csps_depts_2024 - pay_depts_2024
+pay_depts_2024_missing = pay_depts_2024 - csps_depts_2024
+
+assert len(csps_depts_2024_missing) == 0, f"CSPS department organisations missing from pay data: {csps_depts_2024_missing}"
+assert len(pay_depts_2024_missing) == 0, f"Pay department organisations missing from CSPS data: {pay_depts_2024_missing}"
+
+# %%
+# Join CSPS and pay data, keeping only one set of organisation characteristics
+df_pay_csps_organisation = df_pay_organisation2024[["Organisation", "Median salary"]].merge(
+    df_csps_eei_ts_organisation2024_pivot,
+    left_on="Organisation",
+    right_on="Organisation",
+    how="inner"
+)
+df_pay_csps_dept = df_pay_dept2024[["Organisation", "Median salary"]].merge(
+    df_csps_eei_ts_dept2024_pivot,
+    left_on="Organisation",
+    right_on="Organisation",
+    how="inner"
+)
+df_pay_csps_median = df_pay_median[["Year", "Median salary"]].merge(
+    df_csps_eei_ts_median_pivot,
     on="Year",
     how="inner"
 )
 
+# %%
+# ANALYSE DATA
+# Organisation-level EEI scores vs median pay, for 2024
 utils.draw_scatter_plot(
-    df=df_csps_pay,
+    df=df_pay_csps_organisation,
+    x_var="Median salary",
+    y_var=EEI_LABEL,
+    height=3,
+    hue="Organisation type",
+    best_fit=True,
+    fit_reg=False,
+)
+
+utils.fit_regressions(
+    df_pay_csps_organisation, x_vars=["Median salary"], y_var=EEI_LABEL, data_description="2024 organisation-level data"
+)
+
+# %%
+# Organisation-level pay and benefits theme scores vs median pay, for 2024
+utils.draw_scatter_plot(
+    df=df_pay_csps_organisation,
+    x_var="Median salary",
+    y_var="Pay and benefits",
+    height=3,
+    hue="Organisation type",
+    best_fit=True,
+    fit_reg=False,
+)
+
+utils.fit_regressions(
+    df_pay_csps_organisation, x_vars=["Median salary"], y_var="Pay and benefits", data_description="2024 organisation-level data"
+)
+
+# %%
+# Core department organisation-level EEI scores vs median pay, for 2024
+utils.draw_scatter_plot(
+    df=df_pay_csps_dept,
+    x_var="Median salary",
+    y_var=EEI_LABEL,
+    height=3,
+    hue="Organisation type",
+    best_fit=True,
+    fit_reg=False,
+)
+
+utils.fit_regressions(
+    df_pay_csps_dept, x_vars=["Median salary"], y_var=EEI_LABEL, data_description="2024 organisation-level data, depts only"
+)
+
+# %%
+# Core department organisation-level pay and benefits theme scores vs median pay, for 2024
+utils.draw_scatter_plot(
+    df=df_pay_csps_dept,
+    x_var="Median salary",
+    y_var="Pay and benefits",
+    height=3,
+    hue="Organisation type",
+    best_fit=True,
+    fit_reg=False,
+)
+
+utils.fit_regressions(
+    df_pay_csps_dept, x_vars=["Median salary"], y_var="Pay and benefits", data_description="2024 organisation-level data, depts only"
+)
+
+# %%
+# CS median EEI scores vs median pay, over time
+utils.draw_scatter_plot(
+    df=df_pay_csps_median,
     x_var="Median salary",
     y_var=EEI_LABEL,
     height=3,
     hue="Year",
     palette="rocket_r",
     best_fit=True,
+    ci=None
 )
 
 utils.fit_regressions(
-    df_csps_pay, x_vars=["Median salary"], y_var=EEI_LABEL, data_description="Civil service median EEI score vs median pay, over time"
+    df_pay_csps_median, x_vars=["Median salary"], y_var=EEI_LABEL, data_description="Civil service median EEI score vs median pay, over time"
 )
 
 # %%
 # CS median pay and benefits theme scores vs median pay, over time
 utils.draw_scatter_plot(
-    df=df_csps_pay,
+    df=df_pay_csps_median,
     x_var="Median salary",
     y_var="Pay and benefits",
     height=3,
     hue="Year",
     palette="rocket_r",
     best_fit=True,
+    ci=None
 )
 
 utils.fit_regressions(
-    df_csps_pay, x_vars=["Median salary"], y_var="Pay and benefits", data_description="Civil service median pay and benefits score vs median pay, over time"
+    df_pay_csps_median, x_vars=["Median salary"], y_var="Pay and benefits", data_description="Civil service median pay and benefits score vs median pay, over time"
 )
 
 # %%
