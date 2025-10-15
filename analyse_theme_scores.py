@@ -30,7 +30,10 @@ import utils
 
 # %%
 # SET CONSTANTS
-CSPS_PATH = "C:/Users/" + os.getlogin() + "/Institute for Government/Data - General/Civil service/Civil Service - People Survey/"
+CSPS_PATH_OPTIONS = [
+    "C:/Users/" + os.getlogin() + "/Institute for Government/Data - General/Civil service/Civil Service - People Survey/",
+    "C:/Users/" + os.getlogin() + "/OneDrive - Institute for Government/Data - Civil service/Civil Service - People Survey/"
+]
 CSPS_FILE_NAME = "Organisation working file.xlsx"
 CSPS_SHEET = "Data.Collated"
 
@@ -78,7 +81,15 @@ CSPS_DEPT_ONLY_CONDITIONS = {
 
 # %%
 # LOAD DATA
-df_csps = pd.read_excel(CSPS_PATH + CSPS_FILE_NAME, sheet_name=CSPS_SHEET)
+# Try to load from each path option until one works
+for path in CSPS_PATH_OPTIONS:
+    try:
+        df_csps = pd.read_excel(path + CSPS_FILE_NAME, sheet_name=CSPS_SHEET)
+        print(f"Loaded data from {path}")
+        break
+    except FileNotFoundError:
+        print(f"File not found in {path}, trying next option...")
+
 
 # %%
 # RUN CHECKS ON DATA

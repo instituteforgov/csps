@@ -46,10 +46,16 @@ import utils
 
 # %%
 # SET CONSTANTS
-CSPS_PATH = "C:/Users/" + os.getlogin() + "/Institute for Government/Data - General/Civil service/Civil Service - People Survey/"
+CSPS_PATH_OPTIONS = [
+    "C:/Users/" + os.getlogin() + "/Institute for Government/Data - General/Civil service/Civil Service - People Survey/",
+    "C:/Users/" + os.getlogin() + "/OneDrive - Institute for Government/Data - Civil service/Civil Service - People Survey/"
+]
 CSPS_FILE_NAME = "Organisation working file.xlsx"
 CSPS_SHEET = "Data.Collated"
-PAY_PATH = "C:/Users/" + os.getlogin() + "/Institute for Government/Data - General/Civil service/Civil Service - pay and high pay/"
+PAY_PATH_OPTIONS = [
+    "C:/Users/" + os.getlogin() + "/Institute for Government/Data - General/Civil service/Civil Service - pay and high pay/",
+    "C:/Users/" + os.getlogin() + "/OneDrive - Institute for Government/Data - Civil service/Civil Service - pay and high pay/"
+]
 PAY_FILE_NAME = "Pay working file.xlsx"
 PAY_SHEET = "Collated.Organisation x grade"
 PAY_NA_VALUES = ["[c]", "[n]"]
@@ -158,8 +164,22 @@ max_year = max(CSPS_MAX_YEAR, PAY_MAX_YEAR)
 
 # %%
 # LOAD DATA
-df_csps = pd.read_excel(CSPS_PATH + CSPS_FILE_NAME, sheet_name=CSPS_SHEET)
-df_pay = pd.read_excel(PAY_PATH + PAY_FILE_NAME, sheet_name=PAY_SHEET, na_values=PAY_NA_VALUES)
+# Try to load from each path option until one works
+for path in CSPS_PATH_OPTIONS:
+    try:
+        df_csps = pd.read_excel(path + CSPS_FILE_NAME, sheet_name=CSPS_SHEET)
+        print(f"Loaded data from {path}")
+        break
+    except FileNotFoundError:
+        print(f"File not found in {path}, trying next option...")
+
+for path in PAY_PATH_OPTIONS:
+    try:
+        df_pay = pd.read_excel(path + PAY_FILE_NAME, sheet_name=PAY_SHEET, na_values=PAY_NA_VALUES)
+        print(f"Loaded pay data from {path}")
+        break
+    except FileNotFoundError:
+        print(f"File not found in {path}, trying next option...")
 
 # %%
 # RUN CHECKS ON DATA
