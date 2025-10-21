@@ -18,8 +18,7 @@
             - 'Ministry of Justice arm's length bodies': Dropped as individual MoJ ALBs exist as separate organisations in the data
             - 'Office for National Statistics' and 'UK Statistics Authority (excluding Office for National Statistics)': Dropped as 'UK Statistics Authority', which includes the ONS, exists as a separate organisation in the data. ONS is a sub-unit rather than a distinct organisation, therefore we want to include it as part of UKSA
         - DfE figures included in this analysis are group figures, unlike other ministerial departments (see Excel working file for further details)
-        - The department-only analysis is carried out on ministerial departments plus HMRC and minus Export Credits Guarantee Department, for consistency with other Whitehall Monitor analysis
-        -- "Scotland, Wales and Northern Ireland Offices, and the Office of the Advocate General for Scotland" (with organisation type of "Combination" in our classification) is reported as one entity in CSPS and included in this analysis in that form
+        - The department-only analysis is carried out on ministerial departments plus HMRC and minus AGO, the territorial offices (reported as one entity - "Scotland, Wales and Northern Ireland Offices, and the Office of the Advocate General for Scotland" - with an organisation type of "Combination" in our classification) and the Export Credits Guarantee Department, for consistency with other Whitehall Monitor analysis
 """
 
 import os
@@ -71,10 +70,12 @@ ORGS_TO_DROP = [
 # NB: 'Organisations' that are dropped across all the organisation-level analysis - mean and median civil service figures - are intentionally not included here
 CSPS_DEPT_ONLY_CONDITIONS = {
     "organisation_type_filter": ["Ministerial department"],
-    "exclude_orgs": ["Export Credits Guarantee Department"],
+    "exclude_orgs": [
+        "Attorney General's Office",
+        "Export Credits Guarantee Department"
+    ],
     "include_orgs": [
         "Department for Education group (including agencies)",
-        "Scotland, Wales and Northern Ireland Offices, and the Office of the Advocate General for Scotland",
         "HM Revenue and Customs",
     ],
 }

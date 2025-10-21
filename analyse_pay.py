@@ -128,7 +128,10 @@ PAY_ORGANISATION_ONLY_CONDITIONS = {
 }
 CSPS_DEPT_ONLY_CONDITIONS = {
     "organisation_type_filter": ["Ministerial department"],
-    "exclude_orgs": ["Export Credits Guarantee Department"],
+    "exclude_orgs": [
+        "Attorney General's Office",
+        "Export Credits Guarantee Department"
+    ],
     "include_orgs": [
         "Department for Education group (including agencies)",
         "HM Revenue and Customs",
@@ -137,6 +140,7 @@ CSPS_DEPT_ONLY_CONDITIONS = {
 PAY_DEPT_ONLY_CONDITIONS = {
     "organisation_type_filter": ["Ministerial department"],
     "exclude_orgs": [
+        "Attorney General's Office",
         "Export Credits Guarantee Department",
         "Office of the Secretary of State for Scotland",
         "Office of the Secretary of State for Wales",
