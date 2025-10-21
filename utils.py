@@ -149,7 +149,7 @@ def check_pay_data(
 
     assert len(overall_missing) == 0, f"Overall figures missing for years: {overall_missing}"
 
-    # Check that 'All employees' Grade values are present for each year
+    # Check that summary grade name values are present for each year
     grade_missing = {year: [] for year in range(pay_min_year, pay_max_year + 1)}
 
     for year in range(pay_min_year, pay_max_year + 1):
@@ -215,6 +215,7 @@ def edit_csps_data(
 
 def edit_pay_data(
     df: pd.DataFrame,
+    target_grade_name: str,
     dept_groups_to_drop: list[str],
     min_year: int = None,
     max_year: int = None
@@ -224,6 +225,7 @@ def edit_pay_data(
 
     Args:
         df: The raw pay dataframe
+        target_grade_name: Name of the grade to filter for (e.g., 'All employees')
         dept_groups_to_drop: List of departmental groups to exclude
         min_year: Minimum year to include (optional)
         max_year: Maximum year to include (optional)
@@ -234,8 +236,8 @@ def edit_pay_data(
     Notes:
         Unlike edit_csps_data, this function does not need to drop any organisations to avoid double-counting.
     """
-    # Restrict to 'All employees' Grade
-    df_processed = df[df["Grade"] == "All employees"].copy()
+    # Restrict to target grade
+    df_processed = df[df["Grade"] == target_grade_name].copy()
 
     # Convert 'Year' column to integer
     df_processed["Year"] = df_processed["Year"].astype(int)

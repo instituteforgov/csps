@@ -95,7 +95,7 @@ ORGS_TO_DROP = [
     "UK Statistics Authority (excluding Office for National Statistics)",
 ]
 
-PAY_SUMMARY_GRADE_NAME = "All employees"
+PAY_TARGET_GRADE_NAME = "All employees"
 
 # NB: 'Organisations' that are dropped across all the organisation-level analysis - mean and median civil service figures - are intentionally not included here
 CSPS_ORGANISATION_ONLY_CONDITIONS = {
@@ -208,7 +208,7 @@ utils.check_pay_data(
     DEPT_GROUPS_TO_DROP,
     PAY_DEPT_ONLY_CONDITIONS,
     PAY_SUMMARY_ORGANISATION_NAME,
-    PAY_SUMMARY_GRADE_NAME,
+    PAY_TARGET_GRADE_NAME,
 )
 
 # %%
@@ -224,6 +224,7 @@ df_csps_eei_ts = utils.edit_csps_data(
 
 df_pay_cleaned = utils.edit_pay_data(
     df_pay,
+    PAY_TARGET_GRADE_NAME,
     DEPT_GROUPS_TO_DROP,
     min_year=min_year,
     max_year=max_year
