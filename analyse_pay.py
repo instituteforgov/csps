@@ -2,12 +2,12 @@
 """
     Purpose
         Analyse the relationship between pay and benefits CSPS theme scores and pay data. Analyses six things:
-            - Organisation-level EEI scores vs median pay, for 2024
-            - Organisation-level pay and benefits theme scores vs median pay, for 2024
-            - Core department organisation-level EEI scores vs median pay, for 2024
-            - Core department organisation-level pay and benefits theme scores vs median pay, for 2024
-            - CS median EEI scores vs median pay, over time
-            - CS median pay and benefits theme scores vs median pay, over time
+            - Organisation-level EEI scores vs median HEO/SEO pay, for 2024
+            - Organisation-level pay and benefits theme scores vs median HEO/SEO pay, for 2024
+            - Core department organisation-level EEI scores vs median HEO/SEO pay, for 2024
+            - Core department organisation-level pay and benefits theme scores vs median HEO/SEO pay, for 2024
+            - CS median EEI scores vs median HEO/SEO pay, over time
+            - CS median pay and benefits theme scores vs median HEO/SEO pay, over time
     Inputs
         - XLSX: "Organisation working file.xlsx"
             - CSPS organisation data
@@ -17,6 +17,8 @@
         None
     Notes
         -- See "analyse_theme_scores.py" for notes on the CSPS source data and analytical decisions made there: all points apply here too unless otherwise stated
+        -- This focuses on HEO/SEO pay to try and remove the effect of different grade distributions between organisations. HEO/SEO is chosen as it is the biggest band overall across the civil service and the biggest band in departments of interest
+        -- Median HEO/SEO pay is available for a smaller group of organisations than overall median pay - due to e.g. suppression of small numbers - therefore the analysis is based on a smaller list of organisations than the totality of the pay dataset. Organisations for which median HEO/SEO pay is not available are printed alongside the outputs of the analysis
         -- The coverage of the CSPS and Civil Service Stats are different. Differences are that:
             - Civil Service Stats include the following as an organisation, while CSPS does not:
                 - 'Security and Intelligence Services': Other public body
@@ -40,6 +42,7 @@
 
 import os
 
+from IPython.display import display
 import pandas as pd
 
 import utils
@@ -58,7 +61,7 @@ PAY_PATH_OPTIONS = [
 ]
 PAY_FILE_NAME = "Pay working file.xlsx"
 PAY_SHEET = "Collated.Organisation x grade"
-PAY_NA_VALUES = ["[c]", "[n]"]
+PAY_NA_VALUES = ["[c]", "[n]", "-", ".."]
 
 CSPS_MEDIAN_ORGANISATION_NAME = "Civil Service benchmark"
 CSPS_MEAN_ORGANISATION_NAME = "All employees"
@@ -95,7 +98,7 @@ ORGS_TO_DROP = [
     "UK Statistics Authority (excluding Office for National Statistics)",
 ]
 
-PAY_TARGET_GRADE_NAME = "All employees"
+PAY_TARGET_GRADE_NAME = "SEO/HEO"
 
 # NB: 'Organisations' that are dropped across all the organisation-level analysis - mean and median civil service figures - are intentionally not included here
 CSPS_ORGANISATION_ONLY_CONDITIONS = {
@@ -323,7 +326,7 @@ df_pay_csps_dept = df_pay_dept2024[["Organisation", "Median salary"]].merge(
 
 # %%
 # ANALYSE DATA
-# CS median EEI scores vs median pay, over time
+# CS median EEI scores vs median HEO/SEO pay, over time
 utils.draw_scatter_plot(
     df=df_pay_csps_median,
     x_var="Median salary",
@@ -336,11 +339,11 @@ utils.draw_scatter_plot(
 )
 
 utils.fit_regressions(
-    df_pay_csps_median, x_vars=["Median salary"], y_var=EEI_LABEL, data_description="Civil service median EEI score vs median pay, over time"
+    df_pay_csps_median, x_vars=["Median salary"], y_var=EEI_LABEL, data_description="Civil service median EEI score vs median HEO/SEO pay, over time"
 )
 
 # %%
-# CS median pay and benefits theme scores vs median pay, over time
+# CS median pay and benefits theme scores vs median HEO/SEO pay, over time
 utils.draw_scatter_plot(
     df=df_pay_csps_median,
     x_var="Median salary",
@@ -353,11 +356,20 @@ utils.draw_scatter_plot(
 )
 
 utils.fit_regressions(
-    df_pay_csps_median, x_vars=["Median salary"], y_var="Pay and benefits", data_description="Civil service median pay and benefits score vs median pay, over time"
+    df_pay_csps_median, x_vars=["Median salary"], y_var="Pay and benefits", data_description="Civil service median pay and benefits score vs median HEO/SEO pay, over time"
+)
+
+
+# %%
+# CS median HEO/SEO pay records with missing median salary
+display(
+    df_pay_csps_median[
+        df_pay_csps_median["Median salary"].isna()
+    ]
 )
 
 # %%
-# Organisation-level EEI scores vs median pay, for 2024
+# Organisation-level EEI scores vs median HEO/SEO pay, for 2024
 utils.draw_scatter_plot(
     df=df_pay_csps_organisation,
     x_var="Median salary",
@@ -373,7 +385,7 @@ utils.fit_regressions(
 )
 
 # %%
-# Organisation-level pay and benefits theme scores vs median pay, for 2024
+# Organisation-level pay and benefits theme scores vs median HEO/SEO pay, for 2024
 utils.draw_scatter_plot(
     df=df_pay_csps_organisation,
     x_var="Median salary",
@@ -389,7 +401,15 @@ utils.fit_regressions(
 )
 
 # %%
-# Core department organisation-level EEI scores vs median pay, for 2024
+# Organisation-level HEO/SEO pay records with missing median salary
+display(
+    df_pay_csps_organisation[
+        df_pay_csps_organisation["Median salary"].isna()
+    ]
+)
+
+# %%
+# Core department organisation-level EEI scores vs median HEO/SEO pay, for 2024
 utils.draw_scatter_plot(
     df=df_pay_csps_dept,
     x_var="Median salary",
@@ -405,7 +425,7 @@ utils.fit_regressions(
 )
 
 # %%
-# Core department organisation-level pay and benefits theme scores vs median pay, for 2024
+# Core department organisation-level pay and benefits theme scores vs median HEO/SEO pay, for 2024
 utils.draw_scatter_plot(
     df=df_pay_csps_dept,
     x_var="Median salary",
@@ -418,6 +438,14 @@ utils.draw_scatter_plot(
 
 utils.fit_regressions(
     df_pay_csps_dept, x_vars=["Median salary"], y_var="Pay and benefits", data_description="2024 organisation-level data, depts only"
+)
+
+# %%
+# Core department organisation-level HEO/SEO pay records with missing median salary
+display(
+    df_pay_csps_dept[
+        df_pay_csps_dept["Median salary"].isna()
+    ]
 )
 
 # %%
