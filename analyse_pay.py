@@ -31,6 +31,13 @@
                 - 'UK Supreme Court' : NMD - unclear why not in CSPS
             - CSPS includes 'HM Inspectorate of Constabulary and Fire and Rescue Services' (an 'Other public body', per CO's classification), while Civil Service Stats do not
             - "Scotland, Wales and Northern Ireland Offices, and the Office of the Advocate General for Scotland" is included as one entity in the CSPS data, while the territorial offices are separate entities in the pay data
+        - Figures ascribed to a department in our pay data are for core departments: we don't hold departmental group data in our version of the pay data
+        - In the organisation-level analysis, coverage differs slightly between this analysis and the CSPS theme score analysis:
+            - "HM Inspectorate of Constabulary and Fire and Rescue Services" (CSPS data) is dropped from this analysis as it doesn't exist in the pay data,
+            - "Scotland, Wales and Northern Ireland Offices, and the Office of the Advocate General for Scotland" (CSPS data) and "Office of the Secretary of State for Scotland"/"Office of the Secretary of State for Wales"/"Northern Ireland Office" (pay data) are dropped from this analysis as they can't easily be matched
+            - "HM Prison and Probation Service (excluding HM Prison Service and National Probation Service/Probation Service)"/"HM Prison Service"/"Probation Service" (CSPS data) and "HM Prison and Probation Service" are dropped from this analysis as they can't easily be matched
+        - There is also a slight mismatch in coverage for DfE: CSPS data is group figures while pay data is the core department only (departmental group bodies have been excluded from the pay data)
+        - CSPS is conducted in September-October each year, while pay date is as at the 31st March of the respective year
 """
 
 import os
