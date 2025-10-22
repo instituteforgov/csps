@@ -20,3 +20,6 @@ This project uses `pre-commit` hooks to ensure code quality. To set up:
 Rules that are applied can be found in [`.pre-commit-config.yaml`](.pre-commit-config.yaml).
 
 The hooks run automatically on commit, or manually with `pre-commit run --all-files`.
+
+## License
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
