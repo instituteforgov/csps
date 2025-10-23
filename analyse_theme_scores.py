@@ -60,7 +60,8 @@ DEPT_GROUPS_TO_DROP = [
     "Scot Gov",
     "Welsh Gov"
 ]
-ORGS_TO_DROP = [
+
+CSPS_ORGS_TO_DROP = [
     "Ministry of Justice group (including agencies)",
     "Ministry of Justice arm's length bodies",
     "Office for National Statistics",
@@ -100,7 +101,7 @@ utils.check_csps_data(
     CSPS_MAX_YEAR,
     CSPS_MEAN_MIN_YEAR,
     DEPT_GROUPS_TO_DROP,
-    ORGS_TO_DROP,
+    CSPS_ORGS_TO_DROP,
     CSPS_DEPT_ONLY_CONDITIONS,
     CSPS_MEDIAN_ORGANISATION_NAME,
     CSPS_MEAN_ORGANISATION_NAME,
@@ -114,7 +115,7 @@ utils.check_csps_data(
 df_csps_eei_ts = utils.edit_csps_data(
     df_csps,
     DEPT_GROUPS_TO_DROP,
-    ORGS_TO_DROP
+    CSPS_ORGS_TO_DROP
 )
 
 # %%
