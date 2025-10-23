@@ -1,3 +1,4 @@
+from linearmodels import PanelOLS
 import pandas as pd
 import seaborn as sns
 import statsmodels.api as sm
@@ -345,9 +346,11 @@ def filter_pivot_data(
         df_pivot = df_filtered.pivot_table(
             index=["Organisation"] + preserve_columns, columns="Label", values="Value"
         ).reset_index()
+    # Multiple organisations over time
     else:
-        # Handle edge case where both or neither filters are specified
-        raise ValueError("Must specify either year_filter OR organisation_filter (but not both or neither)")
+        df_pivot = df_filtered.pivot_table(
+            index=["Year", "Organisation"] + preserve_columns, columns="Label", values="Value"
+        ).reset_index()
 
     return df_pivot
 
@@ -526,3 +529,45 @@ def fit_regressions(df: pd.DataFrame, x_vars: list[str], y_var: str, data_descri
         print(f"  p-value: {p_value:.4f}{stars}")
         print(f"  Equation: y = {intercept:.4f} + {slope:.4f}x")
         print()
+
+
+def fit_fixed_effects_regression(df: pd.DataFrame, x_var: str, y_var: str, entity_var: str, time_var: str, data_description: str) -> None:
+    """
+    Fit a two-way fixed effects regression model.
+
+    Uses entity (e.g. organisation) and time (e.g. year) fixed effects to control
+    for unobserved heterogeneity across entities and time periods.
+
+    Args:
+        df: DataFrame containing the data
+        x_var: Name of the independent variable
+        y_var: Name of the dependent variable
+        entity_var: Name of the entity variable for fixed effects
+        time_var: Name of the time variable for fixed effects
+        data_description: Description of the data being analysed
+
+    Returns:
+        None (prints regression results)
+    """
+    df_clean = df[[entity_var, time_var, x_var, y_var]].dropna()
+
+    if len(df_clean) == 0:
+        print(f"No valid data for fixed effects regression: {data_description}")
+        return
+
+    df_clean = df_clean.set_index([entity_var, time_var])
+
+    model = PanelOLS(df_clean[y_var], df_clean[[x_var]], entity_effects=True, time_effects=True)
+    results = model.fit(cov_type="clustered", cluster_entity=True)
+
+    print(f"\nTwo-way fixed effects regression: {data_description}")
+    print(f"Dependent variable: {y_var}")
+    print(f"Independent variable: {x_var}")
+    print(f"Entity fixed effects: {entity_var}")
+    print(f"Time fixed effects: {time_var}")
+    print(f"Number of observations: {results.nobs}")
+    print(f"Number of entities: {len(df_clean.index.get_level_values(0).unique())}")
+    print(f"Number of time periods: {len(df_clean.index.get_level_values(1).unique())}")
+    print("\nResults:")
+    print(results)
+    print("\n" + "="*80 + "\n")
