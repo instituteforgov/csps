@@ -22,7 +22,7 @@
     Outputs
         None
     Notes
-        - See "analyse_theme_scores.py" for notes on the CSPS source data and analytical decisions made there: all points apply here too unless otherwise stated
+        - See "analyse_theme_scores.py" for notes on the CSPS source data, analytical decisions made there and caveats on the two-way fixed effects analysis: all points apply here too unless otherwise stated
         - This focuses on HEO/SEO pay to try and remove the effect of different grade distributions between organisations. HEO/SEO is chosen as it is the biggest band overall across the civil service and the biggest band in departments of interest
         - Median HEO/SEO pay is available for a smaller group of organisations than overall median pay - due to e.g. suppression of small numbers - therefore the analysis is based on a smaller list of organisations than the totality of the pay dataset. Organisations for which median HEO/SEO pay is not available are printed alongside the outputs of the analysis
         - The coverage of the CSPS and Civil Service Stats are different. Differences are that:
@@ -44,9 +44,8 @@
             - "HM Prison and Probation Service (excluding HM Prison Service and National Probation Service/Probation Service)"/"HM Prison Service"/"Probation Service" (CSPS data) and "HM Prison and Probation Service" are dropped from this analysis as they can't easily be matched
         - There is also a slight mismatch in coverage for DfE: CSPS data is group figures while pay data is the core department only (departmental group bodies have been excluded from the pay data)
         - CSPS is conducted in September-October each year, while pay date is as at the 31st March of the respective year
-        - The two-way effects regressions are a way of digging into the causality of findings. No additional work has been done to check that organisation names are standardised over time, so some time series may be broken where there are changes in naming/formatting (e.g. considering 'Ministry of Housing, Communities & Local Government - 2018 iteration', 'Department for Levelling Up, Housing and Communities' and 'Ministry of Housing, Communities & Local Government - 2024 iteration' a single entity). In general, there shouldn't be many trivial differences in naming/formatting as in compiling the IfG's collation of the source data we carry out cleaning of organisations names, but things like renamings are not currently handled (see 'Future enhancements' below)
     Future enhancements
-        - If we wish to make greater use of the two-way effects regression findings we should carry out the work of ensuring that organisation names are standardised over time, to ensure time series are being broken by by small changes in naming/formatting
+        - See "analyse_theme_scores.py"
 """
 
 import os
@@ -432,6 +431,17 @@ utils.fit_regressions(
 )
 
 # %%
+# Organisation-level EEI scores vs median HEO/SEO pay two-way fixed effects regression
+utils.fit_fixed_effects_regression(
+    df_pay_csps_organisation_panel,
+    x_var="Median salary",
+    y_var=EEI_LABEL,
+    entity_var="Organisation",
+    time_var="Year",
+    data_description="Organisation-level panel data"
+)
+
+# %%
 # Organisation-level pay and benefits theme scores vs median HEO/SEO pay regression, for 2024
 utils.draw_scatter_plot(
     df=df_pay_csps_organisation,
@@ -445,6 +455,17 @@ utils.draw_scatter_plot(
 
 utils.fit_regressions(
     df_pay_csps_organisation, x_vars=["Median salary"], y_var="Pay and benefits", data_description="2024 organisation-level data"
+)
+
+# %%
+# Organisation-level pay and benefits theme scores vs median HEO/SEO pay two-way fixed effects regression
+utils.fit_fixed_effects_regression(
+    df_pay_csps_organisation_panel,
+    x_var="Median salary",
+    y_var="Pay and benefits",
+    entity_var="Organisation",
+    time_var="Year",
+    data_description="Organisation-level panel data"
 )
 
 # %%
@@ -472,6 +493,17 @@ utils.fit_regressions(
 )
 
 # %%
+# Core department organisation-level EEI scores vs median HEO/SEO pay two-way fixed effects regression
+utils.fit_fixed_effects_regression(
+    df_pay_csps_dept_panel,
+    x_var="Median salary",
+    y_var=EEI_LABEL,
+    entity_var="Organisation",
+    time_var="Year",
+    data_description="Organisation-level panel data, depts only"
+)
+
+# %%
 # Core department organisation-level pay and benefits theme scores vs median HEO/SEO pay regression, for 2024
 utils.draw_scatter_plot(
     df=df_pay_csps_dept,
@@ -488,47 +520,6 @@ utils.fit_regressions(
 )
 
 # %%
-# Core department organisation-level HEO/SEO pay records with missing median salary
-display(
-    df_pay_csps_dept[
-        df_pay_csps_dept["Median salary"].isna()
-    ]
-)
-
-# %%
-# Organisation-level EEI scores vs median HEO/SEO pay two-way fixed effects regression
-utils.fit_fixed_effects_regression(
-    df_pay_csps_organisation_panel,
-    x_var="Median salary",
-    y_var=EEI_LABEL,
-    entity_var="Organisation",
-    time_var="Year",
-    data_description="Organisation-level panel data"
-)
-
-# %%
-# Organisation-level pay and benefits theme scores vs median HEO/SEO pay two-way fixed effects regression
-utils.fit_fixed_effects_regression(
-    df_pay_csps_organisation_panel,
-    x_var="Median salary",
-    y_var="Pay and benefits",
-    entity_var="Organisation",
-    time_var="Year",
-    data_description="Organisation-level panel data"
-)
-
-# %%
-# Core department organisation-level EEI scores vs median HEO/SEO pay two-way fixed effects regression
-utils.fit_fixed_effects_regression(
-    df_pay_csps_dept_panel,
-    x_var="Median salary",
-    y_var=EEI_LABEL,
-    entity_var="Organisation",
-    time_var="Year",
-    data_description="Organisation-level panel data, depts only"
-)
-
-# %%
 # Core department organisation-level pay and benefits theme scores vs median HEO/SEO pay two-way fixed effects regression
 utils.fit_fixed_effects_regression(
     df_pay_csps_dept_panel,
@@ -537,6 +528,14 @@ utils.fit_fixed_effects_regression(
     entity_var="Organisation",
     time_var="Year",
     data_description="Organisation-level panel data, depts only"
+)
+
+# %%
+# Core department organisation-level HEO/SEO pay records with missing median salary
+display(
+    df_pay_csps_dept[
+        df_pay_csps_dept["Median salary"].isna()
+    ]
 )
 
 # %%
