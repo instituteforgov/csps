@@ -109,6 +109,8 @@ CSPS_ORGS_TO_DROP = [
 
 PAY_TARGET_GRADE_NAME = "SEO/HEO"
 
+PAY_MEASURE_COLUMN = "Median salary"
+
 # NB: 'Organisations' that are dropped across all the organisation-level analysis - mean and median civil service figures - are intentionally not included here
 CSPS_ORGANISATION_ONLY_CONDITIONS = {
     "exclude_orgs": [
@@ -213,7 +215,7 @@ utils.check_csps_data(
     TS_LABELS
 )
 
-utils.check_pay_data(
+utils.check_csstats_data(
     df_pay,
     PAY_MIN_YEAR,
     PAY_MAX_YEAR,
@@ -227,23 +229,24 @@ utils.check_pay_data(
 # EDIT DATA
 # Filter data
 df_csps_eei_ts = utils.edit_csps_data(
-    df_csps,
-    DEPT_GROUPS_TO_DROP,
-    CSPS_ORGS_TO_DROP,
+    df=df_csps,
+    dept_groups_to_drop=DEPT_GROUPS_TO_DROP,
+    orgs_to_drop=CSPS_ORGS_TO_DROP,
     min_year=min_year,
     max_year=max_year
 )
 
-df_pay_cleaned = utils.edit_pay_data(
-    df_pay,
-    PAY_TARGET_GRADE_NAME,
-    DEPT_GROUPS_TO_DROP,
+df_pay_cleaned = utils.edit_csstats_data(
+    df=df_pay,
+    target_grade_name=PAY_TARGET_GRADE_NAME,
+    dept_groups_to_drop=DEPT_GROUPS_TO_DROP,
+    measure_column=PAY_MEASURE_COLUMN,
     min_year=min_year,
     max_year=max_year
 )
 
 # %%
-# Create cuts of the CSPS data we"ll need (CS median x all years, organisation-level x 2024, department-level x 2024, organisation-level x all years, department-level x all years) and convert to wide format
+# Create cuts of the CSPS data we'll need (CS median x all years, organisation-level x 2024, department-level x 2024, organisation-level x all years, department-level x all years) and convert to wide format
 df_csps_eei_ts_median_pivot = utils.filter_pivot_data(
     df_csps_eei_ts,
     organisation_filter=CSPS_MEDIAN_ORGANISATION_NAME,

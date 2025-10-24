@@ -92,7 +92,7 @@ def check_csps_data(
     assert len(eei_ts_missing) == 0, f"EEI and theme scores missing for years: {eei_ts_missing}"
 
 
-def check_pay_data(
+def check_csstats_data(
     df: pd.DataFrame,
     pay_min_year: int,
     pay_max_year: int,
@@ -102,10 +102,10 @@ def check_pay_data(
     pay_summary_grade_name: str,
 ) -> None:
     """
-    Run data validation checks on pay dataframe.
+    Run data validation checks on CS Stats dataframe.
 
     Args:
-        df: The pay dataframe to validate
+        df: The dataframe to validate
         pay_min_year: Minimum expected year in the data
         pay_max_year: Maximum expected year in the data
         dept_groups_to_drop: List of departmental groups that should be present for dropping
@@ -214,37 +214,43 @@ def edit_csps_data(
     return df_processed
 
 
-def edit_pay_data(
+def edit_csstats_data(
     df: pd.DataFrame,
-    target_grade_name: str,
     dept_groups_to_drop: list[str],
+    measure_column: str,
+    target_grade_name: str | None = None,
     min_year: int = None,
-    max_year: int = None
+    max_year: int = None,
 ) -> pd.DataFrame:
     """
-    Apply data transformations and cleaning to pay dataframe.
+    Apply data transformations and cleaning to Civil Service Stats dataframe.
 
     Args:
-        df: The raw pay dataframe
+        df: The raw dataframe
         target_grade_name: Name of the grade to filter for (e.g., 'All employees')
         dept_groups_to_drop: List of departmental groups to exclude
+        measure_column: Name of the column containing the measure being analysed (e.g., 'Median salary')
         min_year: Minimum year to include (optional)
         max_year: Maximum year to include (optional)
 
     Returns:
-        pd.DataFrame: Cleaned and processed pay dataframe
+        pd.DataFrame: Cleaned and processed dataframe
 
     Notes:
         Unlike edit_csps_data, this function does not need to drop any organisations to avoid double-counting.
     """
+    # Create copy of data
+    df_processed = df.copy()
+
     # Restrict to target grade
-    df_processed = df[df["Grade"] == target_grade_name].copy()
+    if target_grade_name is not None:
+        df_processed = df[df["Grade"] == target_grade_name].copy()
 
     # Convert 'Year' column to integer
     df_processed["Year"] = df_processed["Year"].astype(int)
 
     # Convert 'Median salary' column to numeric
-    df_processed["Median salary"] = pd.to_numeric(df_processed["Median salary"])
+    df_processed[measure_column] = pd.to_numeric(df_processed[measure_column])
 
     # Restrict to specified year range
     if min_year is not None:
