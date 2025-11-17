@@ -19,11 +19,14 @@
             - CSPS organisation data
         - XLSX: "Pay working file.xlsx"
             - Civil Service Stats pay data
+        - API: https://api.beta.ons.gov.uk/v1/data?uri=/economy/inflationandpriceindices/timeseries/d7bt/mm23
+            - ONS CPI Index 00 data (https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/d7bt/mm23)
     Outputs
         None
     Notes
         - See "analyse_theme_scores.py" for notes on the CSPS source data, analytical decisions made there and caveats on the two-way fixed effects analysis: all points apply here too unless otherwise stated
         - This focuses on HEO/SEO pay to try and remove the effect of different grade distributions between organisations. HEO/SEO is chosen as it is the biggest band overall across the civil service and the biggest band in departments of interest
+        - Pay is put into real terms using CPI as the deflator. The April CPI rate is used, for consistency with convention in WM, agreed with Tom
         - Median HEO/SEO pay is available for a smaller group of organisations than overall median pay - due to e.g. suppression of small numbers - therefore the analysis is based on a smaller list of organisations than the totality of the pay dataset. Organisations for which median HEO/SEO pay is not available are printed alongside the outputs of the analysis
         - The coverage of the CSPS and Civil Service Stats are different. Differences are that:
             - Civil Service Stats include the following as an organisation, while CSPS does not:
@@ -52,6 +55,8 @@ import os
 
 from IPython.display import display
 import pandas as pd
+import requests
+import seaborn as sns
 
 import utils
 
@@ -70,6 +75,11 @@ PAY_PATH_OPTIONS = [
 PAY_FILE_NAME = "Pay working file.xlsx"
 PAY_SHEET = "Collated.Organisation x grade"
 PAY_NA_VALUES = ["[c]", "[n]", "-", ".."]
+CPI_API_URL = "https://api.beta.ons.gov.uk/v1/data?uri=/economy/inflationandpriceindices/timeseries/d7bt/mm23"
+CPI_DEFLATOR_MIN_YEAR = 2010
+CPI_DEFLATOR_MAX_YEAR = 2024
+CPI_DEFLATOR_MONTH = "April"
+CPI_DEFLATOR_BASE_YEAR = 2024
 
 CSPS_MEDIAN_ORGANISATION_NAME = "Civil Service benchmark"
 CSPS_MEAN_ORGANISATION_NAME = "All employees"
@@ -198,6 +208,32 @@ for path in PAY_PATH_OPTIONS:
         break
     except FileNotFoundError:
         print(f"File not found in {path}, trying next option...")
+
+# Load CPI data from ONS API
+print("Fetching CPI data from ONS API...")
+response = requests.get(CPI_API_URL)
+response.raise_for_status()
+cpi_data = response.json()
+
+# Extract monthly observations from API response
+months = cpi_data.get('months', [])
+
+# Convert to DataFrame
+df_cpi = pd.DataFrame(months)
+
+# Filter for April records between 2010 and 2024
+df_cpi = df_cpi[
+    (df_cpi['month'] == CPI_DEFLATOR_MONTH) &
+    (df_cpi['year'].astype(int) >= CPI_DEFLATOR_MIN_YEAR) &
+    (df_cpi['year'].astype(int) <= CPI_DEFLATOR_MAX_YEAR)
+].copy()
+
+# Extract year and CPI value
+df_cpi['Year'] = df_cpi['year'].astype(int)
+df_cpi['CPI'] = df_cpi['value'].astype(float)
+df_cpi = df_cpi[['Year', 'CPI']]
+
+print(f"Loaded CPI data from ONS API ({len(df_cpi)} records)")
 
 # %%
 # RUN CHECKS ON DATA
@@ -375,11 +411,59 @@ df_pay_csps_dept_panel = df_pay_dept[["Organisation", "Year", "Median salary"]].
 )
 
 # %%
+# Deflate pay data. Put everything in 2024 prices, using the CPI figure for the year ending in March each year
+# NB: For single-year dataframes, this only involves multiplying 'Median salary' by the relevant deflator
+cpi_base_year = df_cpi[df_cpi["Year"] == CPI_DEFLATOR_BASE_YEAR]["CPI"].values[0]
+df_cpi["Deflator"] = cpi_base_year / df_cpi["CPI"]
+df_cpi_deflators = df_cpi[["Year", "Deflator"]]
+df_pay_csps_median = df_pay_csps_median.merge(
+    df_cpi_deflators,
+    on="Year",
+    how="left"
+)
+df_pay_csps_median["Median salary deflated"] = df_pay_csps_median["Median salary"] * df_pay_csps_median["Deflator"]
+df_pay_csps_median.drop(columns=["Deflator"], inplace=True)
+
+df_pay_csps_organisation["Median salary deflated"] = df_pay_csps_organisation["Median salary"] * df_cpi_deflators[
+    df_cpi_deflators["Year"] == CPI_DEFLATOR_BASE_YEAR
+]["Deflator"].values[0]
+
+df_pay_csps_organisation_panel = df_pay_csps_organisation_panel.merge(
+    df_cpi_deflators,
+    on="Year",
+    how="left"
+)
+df_pay_csps_organisation_panel["Median salary deflated"] = df_pay_csps_organisation_panel["Median salary"] * df_pay_csps_organisation_panel["Deflator"]
+df_pay_csps_organisation_panel.drop(columns=["Deflator"], inplace=True)
+
+df_pay_csps_dept["Median salary deflated"] = df_pay_csps_dept["Median salary"] * df_cpi_deflators[
+    df_cpi_deflators["Year"] == CPI_DEFLATOR_BASE_YEAR
+]["Deflator"].values[0]
+
+df_pay_csps_dept_panel = df_pay_csps_dept_panel.merge(
+    df_cpi_deflators,
+    on="Year",
+    how="left"
+)
+df_pay_csps_dept_panel["Median salary deflated"] = df_pay_csps_dept_panel["Median salary"] * df_pay_csps_dept_panel["Deflator"]
+df_pay_csps_dept_panel.drop(columns=["Deflator"], inplace=True)
+
+# %%
+# Plot 'Median salary deflated' over time
+sns.set_theme(style="whitegrid")
+plt = sns.lineplot(
+    data=df_pay_csps_median,
+    x="Year",
+    y="Median salary deflated",
+    marker="o"
+)
+
+# %%
 # ANALYSE DATA
 # CS median EEI scores vs median HEO/SEO pay regression, over time
 utils.draw_scatter_plot(
     df=df_pay_csps_median,
-    x_var="Median salary",
+    x_var="Median salary deflated",
     y_var=EEI_LABEL,
     height=3,
     hue="Year",
@@ -389,14 +473,14 @@ utils.draw_scatter_plot(
 )
 
 utils.fit_regressions(
-    df_pay_csps_median, x_vars=["Median salary"], y_var=EEI_LABEL, data_description="Civil service median EEI score vs median HEO/SEO pay, over time"
+    df_pay_csps_median, x_vars=["Median salary deflated"], y_var=EEI_LABEL, data_description="Civil service median EEI score vs median HEO/SEO pay, over time"
 )
 
 # %%
 # CS median pay and benefits theme scores vs median HEO/SEO pay regression, over time
 utils.draw_scatter_plot(
     df=df_pay_csps_median,
-    x_var="Median salary",
+    x_var="Median salary deflated",
     y_var="Pay and benefits",
     height=3,
     hue="Year",
@@ -406,14 +490,14 @@ utils.draw_scatter_plot(
 )
 
 utils.fit_regressions(
-    df_pay_csps_median, x_vars=["Median salary"], y_var="Pay and benefits", data_description="Civil service median pay and benefits score vs median HEO/SEO pay, over time"
+    df_pay_csps_median, x_vars=["Median salary deflated"], y_var="Pay and benefits", data_description="Civil service median pay and benefits score vs median HEO/SEO pay, over time"
 )
 
 # %%
 # CS median HEO/SEO pay records with missing median salary
 display(
     df_pay_csps_median[
-        df_pay_csps_median["Median salary"].isna()
+        df_pay_csps_median["Median salary deflated"].isna()
     ]
 )
 
@@ -421,7 +505,7 @@ display(
 # Organisation-level EEI scores vs median HEO/SEO pay regression, for 2024
 utils.draw_scatter_plot(
     df=df_pay_csps_organisation,
-    x_var="Median salary",
+    x_var="Median salary deflated",
     y_var=EEI_LABEL,
     height=3,
     hue="Organisation type",
@@ -430,14 +514,14 @@ utils.draw_scatter_plot(
 )
 
 utils.fit_regressions(
-    df_pay_csps_organisation, x_vars=["Median salary"], y_var=EEI_LABEL, data_description="2024 organisation-level data"
+    df_pay_csps_organisation, x_vars=["Median salary deflated"], y_var=EEI_LABEL, data_description="2024 organisation-level data"
 )
 
 # %%
 # Organisation-level EEI scores vs median HEO/SEO pay two-way fixed effects regression
 utils.fit_fixed_effects_regression(
     df_pay_csps_organisation_panel,
-    x_var="Median salary",
+    x_var="Median salary deflated",
     y_var=EEI_LABEL,
     entity_var="Organisation",
     time_var="Year",
@@ -448,7 +532,7 @@ utils.fit_fixed_effects_regression(
 # Organisation-level pay and benefits theme scores vs median HEO/SEO pay regression, for 2024
 utils.draw_scatter_plot(
     df=df_pay_csps_organisation,
-    x_var="Median salary",
+    x_var="Median salary deflated",
     y_var="Pay and benefits",
     height=3,
     hue="Organisation type",
@@ -457,14 +541,14 @@ utils.draw_scatter_plot(
 )
 
 utils.fit_regressions(
-    df_pay_csps_organisation, x_vars=["Median salary"], y_var="Pay and benefits", data_description="2024 organisation-level data"
+    df_pay_csps_organisation, x_vars=["Median salary deflated"], y_var="Pay and benefits", data_description="2024 organisation-level data"
 )
 
 # %%
 # Organisation-level pay and benefits theme scores vs median HEO/SEO pay two-way fixed effects regression
 utils.fit_fixed_effects_regression(
     df_pay_csps_organisation_panel,
-    x_var="Median salary",
+    x_var="Median salary deflated",
     y_var="Pay and benefits",
     entity_var="Organisation",
     time_var="Year",
@@ -475,7 +559,7 @@ utils.fit_fixed_effects_regression(
 # Organisation-level HEO/SEO pay records with missing median salary
 display(
     df_pay_csps_organisation[
-        df_pay_csps_organisation["Median salary"].isna()
+        df_pay_csps_organisation["Median salary deflated"].isna()
     ]
 )
 
@@ -483,7 +567,7 @@ display(
 # Core department organisation-level EEI scores vs median HEO/SEO pay regression, for 2024
 utils.draw_scatter_plot(
     df=df_pay_csps_dept,
-    x_var="Median salary",
+    x_var="Median salary deflated",
     y_var=EEI_LABEL,
     height=3,
     hue="Organisation type",
@@ -492,14 +576,14 @@ utils.draw_scatter_plot(
 )
 
 utils.fit_regressions(
-    df_pay_csps_dept, x_vars=["Median salary"], y_var=EEI_LABEL, data_description="2024 organisation-level data, depts only"
+    df_pay_csps_dept, x_vars=["Median salary deflated"], y_var=EEI_LABEL, data_description="2024 organisation-level data, depts only"
 )
 
 # %%
 # Core department organisation-level EEI scores vs median HEO/SEO pay two-way fixed effects regression
 utils.fit_fixed_effects_regression(
     df_pay_csps_dept_panel,
-    x_var="Median salary",
+    x_var="Median salary deflated",
     y_var=EEI_LABEL,
     entity_var="Organisation",
     time_var="Year",
@@ -510,7 +594,7 @@ utils.fit_fixed_effects_regression(
 # Core department organisation-level pay and benefits theme scores vs median HEO/SEO pay regression, for 2024
 utils.draw_scatter_plot(
     df=df_pay_csps_dept,
-    x_var="Median salary",
+    x_var="Median salary deflated",
     y_var="Pay and benefits",
     height=3,
     hue="Organisation type",
@@ -519,14 +603,14 @@ utils.draw_scatter_plot(
 )
 
 utils.fit_regressions(
-    df_pay_csps_dept, x_vars=["Median salary"], y_var="Pay and benefits", data_description="2024 organisation-level data, depts only"
+    df_pay_csps_dept, x_vars=["Median salary deflated"], y_var="Pay and benefits", data_description="2024 organisation-level data, depts only"
 )
 
 # %%
 # Core department organisation-level pay and benefits theme scores vs median HEO/SEO pay two-way fixed effects regression
 utils.fit_fixed_effects_regression(
     df_pay_csps_dept_panel,
-    x_var="Median salary",
+    x_var="Median salary deflated",
     y_var="Pay and benefits",
     entity_var="Organisation",
     time_var="Year",
@@ -537,7 +621,7 @@ utils.fit_fixed_effects_regression(
 # Core department organisation-level HEO/SEO pay records with missing median salary
 display(
     df_pay_csps_dept[
-        df_pay_csps_dept["Median salary"].isna()
+        df_pay_csps_dept["Median salary deflated"].isna()
     ]
 )
 
