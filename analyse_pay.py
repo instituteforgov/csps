@@ -3,10 +3,10 @@
     Purpose
         Analyse the relationship between CSPS results (overall engagement, pay and benefits theme scores) and pay data. Carries out the following:
             - Simple linear regressions
-                - Organisation-level EEI scores vs median HEO/SEO pay, for 2024
-                - Organisation-level pay and benefits theme scores vs median HEO/SEO pay, for 2024
-                - Core department organisation-level EEI scores vs median HEO/SEO pay, for 2024
-                - Core department organisation-level pay and benefits theme scores vs median HEO/SEO pay, for 2024
+                - Organisation-level EEI scores vs median HEO/SEO pay, for 2024 (morale data) and 2025 (pay data)
+                - Organisation-level pay and benefits theme scores vs median HEO/SEO pay, for 2024 (morale data) and 2025 (pay data)
+                - Core department organisation-level EEI scores vs median HEO/SEO pay, for 2024 (morale data) and 2025 (pay data)
+                - Core department organisation-level pay and benefits theme scores vs median HEO/SEO pay, for 2024 (morale data) and 2025 (pay data)
                 - CS median EEI scores vs median HEO/SEO pay, over time
                 - CS median pay and benefits theme scores vs median HEO/SEO pay, over time
             - Two-way fixed effects regressions
@@ -27,6 +27,7 @@
         - See "analyse_theme_scores.py" for notes on the CSPS source data, analytical decisions made there and caveats on the two-way fixed effects analysis: all points apply here too unless otherwise stated
         - This focuses on HEO/SEO pay to try and remove the effect of different grade distributions between organisations. HEO/SEO is chosen as it is the biggest band overall across the civil service and the biggest band in departments of interest
         - Pay is put into real terms using CPI as the deflator. The April CPI rate is used, for consistency with convention in WM, agreed with Tom
+        - CSPS is conducted in September-October each year, while pay date is as at the 31st March of the respective year. CSPS data for a given year is matched to pay data for the following year (i.e. 2024 CSPS data is matched to 2025 pay data). This is on the thinking that pay awards happen between the start of the financial year and the time of the CSPS survey, therefore pay awards made in 2024/25 will first show up in the 2024 CSPS data and 2025 pay data
         - Median HEO/SEO pay is available for a smaller group of organisations than overall median pay - due to e.g. suppression of small numbers - therefore the analysis is based on a smaller list of organisations than the totality of the pay dataset. Organisations for which median HEO/SEO pay is not available are printed alongside the outputs of the analysis
         - The coverage of the CSPS and Civil Service Stats are different. Differences are that:
             - Civil Service Stats include the following as an organisation, while CSPS does not:
@@ -46,9 +47,9 @@
             - "Scotland, Wales and Northern Ireland Offices, and the Office of the Advocate General for Scotland" (CSPS data) and "Office of the Secretary of State for Scotland"/"Office of the Secretary of State for Wales"/"Northern Ireland Office" (pay data) are dropped from this analysis as they can't easily be matched
             - "HM Prison and Probation Service (excluding HM Prison Service and National Probation Service/Probation Service)"/"HM Prison Service"/"Probation Service" (CSPS data) and "HM Prison and Probation Service" are dropped from this analysis as they can't easily be matched
         - There is also a slight mismatch in coverage for DfE: CSPS data is group figures while pay data is the core department only (departmental group bodies have been excluded from the pay data)
-        - CSPS is conducted in September-October each year, while pay date is as at the 31st March of the respective year
     Future enhancements
         - See "analyse_theme_scores.py"
+        - Turn years-of-interest into constants
 """
 
 import os
@@ -77,9 +78,9 @@ PAY_SHEET = "Collated.Organisation x grade"
 PAY_NA_VALUES = ["[c]", "[n]", "-", ".."]
 CPI_API_URL = "https://api.beta.ons.gov.uk/v1/data?uri=/economy/inflationandpriceindices/timeseries/d7bt/mm23"
 CPI_DEFLATOR_MIN_YEAR = 2010
-CPI_DEFLATOR_MAX_YEAR = 2024
+CPI_DEFLATOR_MAX_YEAR = 2025
 CPI_DEFLATOR_MONTH = "April"
-CPI_DEFLATOR_BASE_YEAR = 2024
+CPI_DEFLATOR_BASE_YEAR = 2025
 
 CSPS_MEDIAN_ORGANISATION_NAME = "Civil Service benchmark"
 CSPS_MEAN_ORGANISATION_NAME = "All employees"
@@ -180,15 +181,10 @@ CSPS_ORGANISATION_RENAMINGS = {
     "Department for Education group (including agencies)": "Department for Education/Department for Education group",
 }
 PAY_ORGANISATION_RENAMINGS = {
-    "Department for Levelling Up, Housing and Communities": "Ministry of Housing, Communities & Local Government",
+    "Ministry of Housing, Communities & Local Government - 2024 iteration": "Ministry of Housing, Communities & Local Government",
     "Department for Education": "Department for Education/Department for Education group",
     "Medicines and Healthcare Products Regulatory Agency": "Medicines and Healthcare products Regulatory Agency",
 }
-
-# %%
-# CALCULATE VARIABLES
-min_year = min(CSPS_MIN_YEAR, PAY_MIN_YEAR)
-max_year = max(CSPS_MAX_YEAR, PAY_MAX_YEAR)
 
 # %%
 # LOAD DATA
@@ -221,7 +217,7 @@ months = cpi_data.get('months', [])
 # Convert to DataFrame
 df_cpi = pd.DataFrame(months)
 
-# Filter for April records between 2010 and 2024
+# Filter for April records between the min and max years
 df_cpi = df_cpi[
     (df_cpi['month'] == CPI_DEFLATOR_MONTH) &
     (df_cpi['year'].astype(int) >= CPI_DEFLATOR_MIN_YEAR) &
@@ -268,8 +264,8 @@ df_csps_eei_ts = utils.edit_csps_data(
     df=df_csps,
     dept_groups_to_drop=DEPT_GROUPS_TO_DROP,
     orgs_to_drop=CSPS_ORGS_TO_DROP,
-    min_year=min_year,
-    max_year=max_year
+    min_year=CSPS_MIN_YEAR,
+    max_year=CSPS_MAX_YEAR
 )
 
 df_pay_cleaned = utils.edit_csstats_data(
@@ -277,8 +273,8 @@ df_pay_cleaned = utils.edit_csstats_data(
     target_grade_name=PAY_TARGET_GRADE_NAME,
     dept_groups_to_drop=DEPT_GROUPS_TO_DROP,
     measure_column=PAY_MEASURE_COLUMN,
-    min_year=min_year,
-    max_year=max_year
+    min_year=PAY_MIN_YEAR,
+    max_year=PAY_MAX_YEAR
 )
 
 # %%
@@ -319,19 +315,19 @@ df_csps_eei_ts_dept_pivot = utils.filter_pivot_data(
 )
 
 # %%
-# Create cuts of the pay data we'll need (CS median x all years, organisation-level x 2024, department-level x 2024, organisation-level x all years, department-level x all years)
+# Create cuts of the pay data we'll need (CS median x all years, organisation-level x 2025, department-level x 2025, organisation-level x all years, department-level x all years)
 df_pay_median = df_pay_cleaned[
     df_pay_cleaned["Organisation"] == PAY_SUMMARY_ORGANISATION_NAME
 ][["Year", "Median salary"]].copy()
 
-df_pay_organisation2024 = df_pay_cleaned[
-    (df_pay_cleaned["Year"] == 2024) &
+df_pay_organisation2025 = df_pay_cleaned[
+    (df_pay_cleaned["Year"] == 2025) &
     (df_pay_cleaned["Organisation"] != PAY_SUMMARY_ORGANISATION_NAME) &
     (~df_pay_cleaned["Organisation"].isin(PAY_ORGANISATION_ONLY_CONDITIONS["exclude_orgs"]))
 ].copy()
 
-df_pay_dept2024 = df_pay_cleaned[
-    (df_pay_cleaned["Year"] == 2024) &
+df_pay_dept2025 = df_pay_cleaned[
+    (df_pay_cleaned["Year"] == 2025) &
     (df_pay_cleaned["Organisation"] != PAY_SUMMARY_ORGANISATION_NAME) &
     (
         (df_pay_cleaned["Organisation type"].isin(PAY_DEPT_ONLY_CONDITIONS["organisation_type_filter"])) |
@@ -358,60 +354,61 @@ df_pay_dept = df_pay_cleaned[
 # Rename organisations to facilitate merging
 for df in [df_csps_eei_ts_organisation2024_pivot, df_csps_eei_ts_dept2024_pivot, df_csps_eei_ts_organisation_pivot, df_csps_eei_ts_dept_pivot]:
     df["Organisation"] = df["Organisation"].replace(CSPS_ORGANISATION_RENAMINGS)
-for df in [df_pay_organisation2024, df_pay_dept2024, df_pay_organisation, df_pay_dept]:
+for df in [df_pay_organisation2025, df_pay_dept2025, df_pay_organisation, df_pay_dept]:
     df["Organisation"] = df["Organisation"].replace(PAY_ORGANISATION_RENAMINGS)
 
 # %%
 # Check all organisations are matched between pay and CSPS data
 csps_organisations_2024 = set(df_csps_eei_ts_organisation2024_pivot["Organisation"].unique())
-pay_organisations_2024 = set(df_pay_organisation2024["Organisation"].unique())
-csps_organisations_2024_missing = csps_organisations_2024 - pay_organisations_2024
-pay_organisations_2024_missing = pay_organisations_2024 - csps_organisations_2024
+pay_organisations_2025 = set(df_pay_organisation2025["Organisation"].unique())
+csps_organisations_2024_missing = csps_organisations_2024 - pay_organisations_2025
+pay_organisations_2025_missing = pay_organisations_2025 - csps_organisations_2024
 
 assert len(csps_organisations_2024_missing) == 0, f"CSPS organisations missing from pay data: {csps_organisations_2024_missing}"
-assert len(pay_organisations_2024_missing) == 0, f"Pay organisations missing from CSPS data: {pay_organisations_2024_missing}"
+assert len(pay_organisations_2025_missing) == 0, f"Pay organisations missing from CSPS data: {pay_organisations_2025_missing}"
 
 # %%
 csps_depts_2024 = set(df_csps_eei_ts_dept2024_pivot["Organisation"].unique())
-pay_depts_2024 = set(df_pay_dept2024["Organisation"].unique())
-csps_depts_2024_missing = csps_depts_2024 - pay_depts_2024
-pay_depts_2024_missing = pay_depts_2024 - csps_depts_2024
+pay_depts_2025 = set(df_pay_dept2025["Organisation"].unique())
+csps_depts_2024_missing = csps_depts_2024 - pay_depts_2025
+pay_depts_2025_missing = pay_depts_2025 - csps_depts_2024
 
 assert len(csps_depts_2024_missing) == 0, f"CSPS departments missing from pay data: {csps_depts_2024_missing}"
-assert len(pay_depts_2024_missing) == 0, f"Pay departments missing from CSPS data: {pay_depts_2024_missing}"
+assert len(pay_depts_2025_missing) == 0, f"Pay departments missing from CSPS data: {pay_depts_2025_missing}"
 
 # %%
 # Join CSPS and pay data, keeping only one set of organisation characteristics in organisation-level analysis
+# Adjust CSPS years to match pay years (CSPS year Y matches Pay year Y+1)
 df_pay_csps_median = df_pay_median[["Year", "Median salary"]].merge(
-    df_csps_eei_ts_median_pivot,
+    df_csps_eei_ts_median_pivot.assign(Year=df_csps_eei_ts_median_pivot["Year"] + 1),
     on="Year",
     how="inner"
 )
-df_pay_csps_organisation = df_pay_organisation2024[["Organisation", "Median salary"]].merge(
+df_pay_csps_organisation = df_pay_organisation2025[["Organisation", "Median salary"]].merge(
     df_csps_eei_ts_organisation2024_pivot,
     left_on="Organisation",
     right_on="Organisation",
     how="inner"
 )
-df_pay_csps_dept = df_pay_dept2024[["Organisation", "Median salary"]].merge(
+df_pay_csps_dept = df_pay_dept2025[["Organisation", "Median salary"]].merge(
     df_csps_eei_ts_dept2024_pivot,
     left_on="Organisation",
     right_on="Organisation",
     how="inner"
 )
 df_pay_csps_organisation_panel = df_pay_organisation[["Organisation", "Year", "Median salary"]].merge(
-    df_csps_eei_ts_organisation_pivot,
+    df_csps_eei_ts_organisation_pivot.assign(Year=df_csps_eei_ts_organisation_pivot["Year"] + 1),
     on=["Organisation", "Year"],
     how="inner"
 )
 df_pay_csps_dept_panel = df_pay_dept[["Organisation", "Year", "Median salary"]].merge(
-    df_csps_eei_ts_dept_pivot,
+    df_csps_eei_ts_dept_pivot.assign(Year=df_csps_eei_ts_dept_pivot["Year"] + 1),
     on=["Organisation", "Year"],
     how="inner"
 )
 
 # %%
-# Deflate pay data. Put everything in 2024 prices, using the CPI figure for the year ending in March each year
+# Deflate pay data
 # NB: For single-year dataframes, this only involves multiplying 'Median salary' by the relevant deflator
 cpi_base_year = df_cpi[df_cpi["Year"] == CPI_DEFLATOR_BASE_YEAR]["CPI"].values[0]
 df_cpi["Deflator"] = cpi_base_year / df_cpi["CPI"]
@@ -502,7 +499,7 @@ display(
 )
 
 # %%
-# Organisation-level EEI scores vs median HEO/SEO pay regression, for 2024
+# Organisation-level EEI scores vs median HEO/SEO pay regression, for 2024 (morale data) and 2025 (pay data)
 utils.draw_scatter_plot(
     df=df_pay_csps_organisation,
     x_var="Median salary deflated",
@@ -529,7 +526,7 @@ utils.fit_fixed_effects_regression(
 )
 
 # %%
-# Organisation-level pay and benefits theme scores vs median HEO/SEO pay regression, for 2024
+# Organisation-level pay and benefits theme scores vs median HEO/SEO pay regression, for 2024 (morale data) and 2025 (pay data)
 utils.draw_scatter_plot(
     df=df_pay_csps_organisation,
     x_var="Median salary deflated",
@@ -564,7 +561,7 @@ display(
 )
 
 # %%
-# Core department organisation-level EEI scores vs median HEO/SEO pay regression, for 2024
+# Core department organisation-level EEI scores vs median HEO/SEO pay regression, for 2024 (morale data) and 2025 (pay data)
 utils.draw_scatter_plot(
     df=df_pay_csps_dept,
     x_var="Median salary deflated",
@@ -591,7 +588,7 @@ utils.fit_fixed_effects_regression(
 )
 
 # %%
-# Core department organisation-level pay and benefits theme scores vs median HEO/SEO pay regression, for 2024
+# Core department organisation-level pay and benefits theme scores vs median HEO/SEO pay regression, for 2024 (morale data) and 2025 (pay data)
 utils.draw_scatter_plot(
     df=df_pay_csps_dept,
     x_var="Median salary deflated",
