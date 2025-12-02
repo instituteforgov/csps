@@ -25,7 +25,7 @@
         - The department-only analysis is carried out on ministerial departments plus HMRC and minus AGO, the territorial offices (reported as one entity - "Scotland, Wales and Northern Ireland Offices, and the Office of the Advocate General for Scotland" - with an organisation type of "Combination" in our classification) and the Export Credits Guarantee Department, for consistency with other Whitehall Monitor analysis
         - The two-way effects regressions are a way of digging into the causality of findings. No additional work has been done to check that organisation names are standardised over time, so some time series may be broken where there are changes in naming/formatting (e.g. considering 'Ministry of Housing, Communities & Local Government - 2018 iteration', 'Department for Levelling Up, Housing and Communities' and 'Ministry of Housing, Communities & Local Government - 2024 iteration' a single entity). In general, there shouldn't be many trivial differences in naming/formatting as in compiling the IfG's collation of the source data we carry out cleaning of organisations names, but things like renamings are not currently handled (see 'Future enhancements' below)
     Future enhancements
-        - If we wish to make greater use of the two-way effects regression findings we should carry out the work of ensuring that organisation names are standardised over time, to ensure time series are being broken by by small changes in naming/formatting
+        - If we wish to make greater use of the all-organisations two-way effects regression findings we should carry out the work of ensuring that organisation names are standardised over time, to ensure time series are being broken by by small changes in naming/formatting
 """
 
 import os
